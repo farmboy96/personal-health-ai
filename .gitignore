@@ -1,0 +1,48 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.python-version
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# IDE/editor
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local app data
+.env
+.env.*
+*.sqlite
+*.db
+*.log
+
+# Streamlit / app temp
+.streamlit/secrets.toml
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Node, if used for UI assets
+node_modules/
+backend/data/raw/
