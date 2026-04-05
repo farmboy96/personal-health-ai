@@ -46,3 +46,6 @@ Thumbs.db
 # Node, if used for UI assets
 node_modules/
 backend/data/raw/
+
+.venv/
+.env
