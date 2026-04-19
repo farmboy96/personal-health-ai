@@ -241,6 +241,11 @@ def main() -> None:
     import pandas as pd
     import plotly.graph_objects as go
 
+    # Handle pending resets from prior run (before widgets bind to keys)
+    if st.session_state.get("_pending_reset_summary_select"):
+        st.session_state["overview_summary_select"] = "Latest (most recent run)"
+        del st.session_state["_pending_reset_summary_select"]
+
     st.set_page_config(
         page_title="Personal Health AI",
         layout="wide",
@@ -274,7 +279,7 @@ def main() -> None:
         if st.button("Refresh Analysis", type="primary", use_container_width=True):
             with st.spinner("Regenerating summary (calls OpenAI)…"):
                 execute_daily_summary()
-            st.session_state["overview_summary_select"] = labels[0]
+            st.session_state["_pending_reset_summary_select"] = True
             st.success("Saved new daily summary.")
             st.rerun()
 
@@ -319,7 +324,7 @@ def main() -> None:
             if st.button("Refresh Analysis", key="ov_refresh"):
                 with st.spinner("Regenerating summary…"):
                     execute_daily_summary()
-                st.session_state["overview_summary_select"] = "Latest (most recent run)"
+                st.session_state["_pending_reset_summary_select"] = True
                 st.rerun()
         if not row:
             st.info("Run **Refresh Analysis** to generate your first cached summary.")
