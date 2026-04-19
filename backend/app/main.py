@@ -15,7 +15,10 @@ def run():
 
     print(data["summary_text"])
 
-    print("\n=== AI INSIGHTS ===\n")
+    print("\n=== PHYSIOLOGY ROLLUPS (Apple Health) ===\n")
+    print(data["physiology_rollups"])
+    print()
+    print("=== AI INSIGHTS ===\n")
     print(data["ai_insights"])
 
 

@@ -3,6 +3,7 @@ from sqlalchemy import desc, or_
 from app.ai.health_interpreter import generate_ai_insights
 from app.db.database import SessionLocal
 from app.db.models import GeneticVariant
+from app.domain.assessment.apple_health_rollup import compute_rollups, format_rollup_block
 from app.domain.assessment.daily_assessment import build_health_snapshot, build_summary_text
 
 
@@ -38,12 +39,21 @@ def execute_daily_summary():
             )
         genetic_context = "\n".join(genetic_lines) if genetic_lines else None
 
-        ai_output = generate_ai_insights(summary, genetic_context=genetic_context)
-        
+        rollups = compute_rollups(db)
+        physiology_block = format_rollup_block(rollups)
+        physiology_context = physiology_block.strip() or None
+
+        ai_output = generate_ai_insights(
+            summary,
+            genetic_context=genetic_context,
+            physiology_context=physiology_context,
+        )
+
         return {
             "snapshot_data": snapshot,
             "summary_text": summary,
-            "ai_insights": ai_output
+            "physiology_rollups": physiology_block,
+            "ai_insights": ai_output,
         }
     finally:
         db.close()
