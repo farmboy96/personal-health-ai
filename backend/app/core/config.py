@@ -1,7 +1,9 @@
 import os
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+
     PROJECT_NAME: str = "Personal Health AI"
     # The API Key for the official google-genai SDK
     GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
@@ -13,9 +15,6 @@ class Settings(BaseSettings):
     
     # Configure the raw_payload storage policy: 'none', 'selected_metrics', 'all'
     PAYLOAD_STORAGE_POLICY: str = "selected_metrics"
-    
-    class Config:
-        env_file = ".env"
 
 settings = Settings()
 

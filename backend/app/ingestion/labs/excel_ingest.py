@@ -131,8 +131,9 @@ def process_excel_file(
         raise ValueError("No date columns found in expected header row.")
 
     master_tests = {
-        t.standard_name: t.id
+        t.canonical_name: t.id
         for t in db.query(LabTestMaster).all()
+        if t.canonical_name
     }
 
     batch = []
@@ -159,8 +160,9 @@ def process_excel_file(
 
         if canonical not in master_tests:
             new_test = LabTestMaster(
-                standard_name=canonical,
-                standard_unit=unit_val,
+                canonical_name=canonical,
+                display_name=canonical,
+                default_unit=unit_val,
             )
             db.add(new_test)
             db.flush()

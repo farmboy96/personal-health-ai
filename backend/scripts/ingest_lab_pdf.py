@@ -7,7 +7,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from datetime import datetime
 from app.db.database import SessionLocal
 from app.db.models import LabResult
-from scripts.debug_extract_lab_pdf import extract_pdf  # reuse logic
+from app.ingestion.labs.pdf_ingest import extract_pdf
 from app.domain.labs.normalization import (
     resolve_canonical_test,
     standardize_test_name,
@@ -68,39 +68,6 @@ def parse_date_safe(date_str):
 def generate_dedupe_hash(row: dict) -> str:
     key = f"{row['lab_date']}|{row['source_test_name']}|{row['result_value_text']}|{row['unit']}"
     return hashlib.sha256(key.encode()).hexdigest()
-
-
-def insert_rows(rows):
-    db = SessionLocal()
-    inserted = 0
-    skipped = 0
-
-    for row in rows:
-        dedupe_hash = generate_dedupe_hash(row)
-
-        exists = db.query(LabResult).filter_by(dedupe_hash=dedupe_hash).first()
-        if exists:
-            skipped += 1
-            continue
-
-        new_row = LabResult(
-            lab_date=parse_date_safe(row["lab_date"]),
-            source_test_name=row["source_test_name"],
-            result_value_text=row["result_value_text"],
-            unit=row["unit"],
-            reference_range=row["reference_range"],
-            abnormal_flag=row["abnormal_flag"],
-            dedupe_hash=dedupe_hash,
-        )
-
-        db.add(new_row)
-        inserted += 1
-
-    db.commit()
-    db.close()
-
-    print(f"\nInserted: {inserted}")
-    print(f"Skipped (duplicates): {skipped}")
 
 
 def main():

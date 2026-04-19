@@ -4,10 +4,10 @@ from typing import Optional
 NUMERIC_REGEX = re.compile(r"[-+]?\d*\.?\d+")
 
 def extract_numeric_value(value_text: str) -> Optional[float]:
-    if not value_text:
+    if value_text is None or (isinstance(value_text, str) and not value_text.strip()):
         return None
 
-    text = value_text.strip()
+    text = str(value_text).strip()
 
     # Fast reject (non-numeric common lab outputs)
     lowered = text.lower()
