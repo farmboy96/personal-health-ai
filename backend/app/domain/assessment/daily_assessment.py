@@ -7,14 +7,21 @@ def build_health_snapshot(db):
     """
     metrics = {}
     key_tests = [
-        "TSH", 
-        "HEMOGLOBIN_A1C", 
-        "VITAMIN_D", 
-        "TESTOSTERONE_TOTAL", 
-        "ESTRADIOL", 
-        "FERRITIN", 
-        "HS_CRP", 
-        "HOMOCYSTEINE"
+        "TSH",
+        "A1C",
+        "GLUCOSE",
+        "VITAMIN_D_25_OH_TOTAL",
+        "TESTOSTERONE_TOTAL",
+        "TESTOSTERONE_FREE",
+        "ESTRADIOL",
+        "FERRITIN",
+        "HS_CRP",
+        "HOMOCYSTEINE",
+        "TOTAL_CHOLESTEROL",
+        "LDL",
+        "HDL",
+        "TRIGLYCERIDES",
+        "INSULIN",
     ]
 
     for test in key_tests:
