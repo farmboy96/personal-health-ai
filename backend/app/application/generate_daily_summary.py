@@ -1,10 +1,21 @@
+import json
+
 from sqlalchemy import desc, or_
 
 from app.ai.health_interpreter import generate_ai_insights
 from app.db.database import SessionLocal
-from app.db.models import GeneticVariant
+from app.db.models import DailySummary, GeneticVariant
 from app.domain.assessment.apple_health_rollup import compute_rollups, format_rollup_block
 from app.domain.assessment.daily_assessment import build_health_snapshot, build_summary_text
+
+
+def load_latest_summary(db) -> DailySummary | None:
+    """Most recent persisted daily summary, or None if none exist."""
+    return (
+        db.query(DailySummary)
+        .order_by(desc(DailySummary.created_at))
+        .first()
+    )
 
 
 def execute_daily_summary():
@@ -13,7 +24,8 @@ def execute_daily_summary():
     1. Loads deterministically filtered data via DB.
     2. Builds normalized text snapshot.
     3. Triggers AI assessment.
-    Returns structured dict, does not print to console.
+    4. Persists results to daily_summaries.
+    Returns structured dict including daily_summary_id.
     """
     db = SessionLocal()
     try:
@@ -49,10 +61,25 @@ def execute_daily_summary():
             physiology_context=physiology_context,
         )
 
+        snapshot_json = json.dumps(snapshot, default=str)
+
+        row = DailySummary(
+            summary_text=summary,
+            physiology_rollups=physiology_block or "",
+            genetic_context=genetic_context,
+            ai_insights=ai_output,
+            snapshot_json=snapshot_json,
+        )
+        db.add(row)
+        db.commit()
+        db.refresh(row)
+
         return {
+            "daily_summary_id": row.id,
             "snapshot_data": snapshot,
             "summary_text": summary,
             "physiology_rollups": physiology_block,
+            "genetic_context": genetic_context,
             "ai_insights": ai_output,
         }
     finally:

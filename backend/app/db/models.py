@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from sqlalchemy import Column, Integer, String, Date, DateTime, Float, Text, ForeignKey, UniqueConstraint
 from sqlalchemy.sql import func
 
@@ -106,6 +108,18 @@ class GeneticVariant(Base):
     detail = Column(Text, nullable=True)
     source_file_id = Column(Integer, ForeignKey("source_files.id"), nullable=True)
     created_at = Column(DateTime, default=func.now())
+
+
+class DailySummary(Base):
+    __tablename__ = "daily_summaries"
+
+    id = Column(Integer, primary_key=True, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+    summary_text = Column(Text, nullable=False)
+    physiology_rollups = Column(Text, nullable=False, default="")
+    genetic_context = Column(Text, nullable=True)
+    ai_insights = Column(Text, nullable=False)
+    snapshot_json = Column(Text, nullable=False)
 
 
 class RawMeasurement(Base):
