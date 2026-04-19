@@ -1,4 +1,6 @@
 from app.db.repositories.lab_repository import get_trend_for_test
+from app.domain.assessment.trend_analysis import compute_trend, format_trend_line
+
 
 def build_health_snapshot(db):
     """
@@ -31,27 +33,26 @@ def build_health_snapshot(db):
         latest = trend[-1]
         previous = trend[-2] if len(trend) > 1 else None
 
+        series_for_trend = [{"date": row["date"], "value": row["value"]} for row in trend]
+        trend_stats = compute_trend(series_for_trend)
+
         metrics[test] = {
             "latest": latest,
             "previous": previous,
-            "delta": (latest["value"] - previous["value"] if previous and latest["value"] is not None and previous["value"] is not None else None)
+            "delta": (
+                latest["value"] - previous["value"]
+                if previous
+                and latest["value"] is not None
+                and previous["value"] is not None
+                else None
+            ),
+            "trend": trend_stats,
         }
     return metrics
+
 
 def build_summary_text(snapshot):
     lines = []
     for test, data in snapshot.items():
-        latest = data["latest"]
-        delta = data["delta"]
-
-        line = f"{test}: {latest['value']} {latest['unit']}"
-        if delta is not None:
-            if delta > 0: line += f" (↑ {abs(delta):.2f})"
-            elif delta < 0: line += f" (↓ {abs(delta):.2f})"
-            else: line += " (no change)"
-
-        if latest["flag"]:
-            line += f" [FLAG: {latest['flag']}]"
-
-        lines.append(line)
+        lines.append(format_trend_line(test, data, data.get("trend")))
     return "\n".join(lines)

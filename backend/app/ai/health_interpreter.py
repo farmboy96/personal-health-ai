@@ -15,9 +15,9 @@ def generate_ai_insights(summary_text: str, genetic_context: str | None = None) 
 
 Analyze the following lab trends and provide:
 
-1. What stands out
+1. What stands out — focus on trajectory, not just current values. A result in range but trending the wrong way over years is more important than an isolated out-of-range reading.
 2. Likely causes or pattern connections
-3. What to watch
+3. What to watch — particularly anything with a rising trend toward concerning thresholds, even if still in range today
 4. Practical actions
 
 Be concise. No fluff. No disclaimers. Use the subject profile above to give targeted advice — do not hedge across possibilities the profile already resolves.
