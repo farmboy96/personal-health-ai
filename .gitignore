@@ -33,6 +33,7 @@ Thumbs.db
 # Local app data
 .env
 .env.*
+!.env.example
 *.sqlite
 *.db
 *.log
