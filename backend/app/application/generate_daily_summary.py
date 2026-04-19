@@ -1,6 +1,10 @@
-from app.db.database import SessionLocal
-from app.domain.assessment.daily_assessment import build_health_snapshot, build_summary_text
+from sqlalchemy import desc, or_
+
 from app.ai.health_interpreter import generate_ai_insights
+from app.db.database import SessionLocal
+from app.db.models import GeneticVariant
+from app.domain.assessment.daily_assessment import build_health_snapshot, build_summary_text
+
 
 def execute_daily_summary():
     """
@@ -14,7 +18,27 @@ def execute_daily_summary():
     try:
         snapshot = build_health_snapshot(db)
         summary = build_summary_text(snapshot)
-        ai_output = generate_ai_insights(summary)
+
+        genetics_rows = (
+            db.query(GeneticVariant)
+            .filter(
+                or_(GeneticVariant.repute == "Bad", GeneticVariant.magnitude >= 2.5)
+            )
+            .order_by(desc(GeneticVariant.magnitude))
+            .limit(20)
+            .all()
+        )
+        genetic_lines = []
+        for r in genetics_rows:
+            mag_disp = r.magnitude if r.magnitude is not None else "?"
+            genes = r.genes or ""
+            summ = (r.summary or "").replace("\n", " ").strip()
+            genetic_lines.append(
+                f"{r.rsid}({r.genotype}) mag={mag_disp} [{genes}]: {summ}"
+            )
+        genetic_context = "\n".join(genetic_lines) if genetic_lines else None
+
+        ai_output = generate_ai_insights(summary, genetic_context=genetic_context)
         
         return {
             "snapshot_data": snapshot,

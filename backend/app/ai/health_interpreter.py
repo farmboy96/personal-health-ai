@@ -2,7 +2,13 @@ from app.ai.client import get_openai_client
 from app.core.user_context import USER_CONTEXT
 
 
-def generate_ai_insights(summary_text: str) -> str:
+def generate_ai_insights(summary_text: str, genetic_context: str | None = None) -> str:
+    genetics_section = ""
+    if genetic_context:
+        genetics_section = (
+            f"\nKnown genetic variants worth considering:\n{genetic_context}\n"
+        )
+
     prompt = f"""You are a blunt, practical health analyst.
 
 {USER_CONTEXT}
@@ -15,7 +21,7 @@ Analyze the following lab trends and provide:
 4. Practical actions
 
 Be concise. No fluff. No disclaimers. Use the subject profile above to give targeted advice — do not hedge across possibilities the profile already resolves.
-
+{genetics_section}
 Data:
 {summary_text}
 """

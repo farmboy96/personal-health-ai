@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Date, DateTime, Float, Text, ForeignKey
+from sqlalchemy import Column, Integer, String, Date, DateTime, Float, Text, ForeignKey, UniqueConstraint
 from sqlalchemy.sql import func
 
 from app.db.database import Base
@@ -88,6 +88,25 @@ class LabTestAlias(Base):
     canonical_code = Column(String, nullable=False, index=True)
     source_scope = Column(String, nullable=True)
     notes = Column(String, nullable=True)
+
+
+class GeneticVariant(Base):
+    __tablename__ = "genetic_variants"
+    __table_args__ = (
+        UniqueConstraint("rsid", "genotype", name="uq_genetic_variants_rsid_genotype"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    rsid = Column(String(32), nullable=False, index=True)
+    genotype = Column(String(16), nullable=False)
+    magnitude = Column(Float, nullable=True)
+    repute = Column(String(16), nullable=True)
+    genes = Column(String(256), nullable=True)
+    summary = Column(Text, nullable=True)
+    detail = Column(Text, nullable=True)
+    source_file_id = Column(Integer, ForeignKey("source_files.id"), nullable=True)
+    created_at = Column(DateTime, default=func.now())
+
 
 class RawMeasurement(Base):
     __tablename__ = "raw_measurements"
