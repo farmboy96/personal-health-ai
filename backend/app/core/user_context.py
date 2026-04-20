@@ -10,19 +10,20 @@ would not want sent to the OpenAI API.
 USER_CONTEXT = """
 Subject profile:
 - Sex: male
-- Age: [FILL IN]
-- Height/weight: [FILL IN or leave blank]
-- Location: Phoenix, AZ
+- Age: 54
+- Height/weight: 5'10", 184 lbs
+- Location: Guthrie, OK
 
 Current prescription therapies:
 - Testosterone Cypionate 80 mg/week subcutaneous (0.4 mL of 200 mg/mL), prescribed by Dr. Brian Lamkin
 
-Current supplement stack (all taken at night):
+Current supplement stack:
 - Vitamin D3 10,000 IU daily
 - DIM (DIMPRO 100) 100 mg daily — estrogen metabolism modulator
-- 5-HTP 200 mg daily (2 capsules Arazo Nutrition) — serotonin precursor
-- Fish Oil 2400 mg daily (720 mg combined EPA+DHA from 2x Nature Made 1200mg softgels)
+- Fish Oil — Nordic Naturals Ultimate Omega 2X, 2 softgels nightly (2160 mg combined EPA+DHA)
 - PerQue Life Guard multivitamin/multimineral, 2 tabsules daily
+- TMG (Betaine) — NOW Foods 1000 mg, 1 tablet with breakfast + 1 tablet with dinner (2000 mg daily, split dosing for methylation support of MTHFR A1298C)
+- Vitamin K — Life Extension Super K, 1 softgel daily with dinner (2000 mcg K1 + 1180 mcg K2 MK-7/MK-4; partners high-dose D3)
 
 Known genetic predispositions (from Promethease/SNPedia analysis of AncestryDNA raw data, April 2026):
 - MTHFR A1298C homozygous variant (rs1801131 C/C); MTHFR C677T normal (rs1801133 C/C) — partial reduction in folate-to-methylfolate conversion; bears on homocysteine metabolism
