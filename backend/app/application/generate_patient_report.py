@@ -30,9 +30,10 @@ TIMELINE_RULES_BLOCK = """TIMELINE REASONING RULES (mandatory):
 1. Labs are dated. Supplements and behaviors are dated. Never attribute a lab value to an intervention that started after the lab was drawn.
 2. The most recent lab draw is January 27, 2026. If a supplement or behavior started AFTER January 27, 2026, it cannot have affected any current lab value. Do not write phrases like "consistent with [new intervention]" or "reflecting [new intervention]" for any current biomarker.
 3. When writing about future lab trajectories, use explicit forward-looking framing: "Expected in July 2026 labs after TMG exposure" — not "consistent with your TMG".
-4. When writing "What's working" sections, attribute improvements only to interventions that were in effect before the lab draw date. For recent metabolic wins (A1C, insulin, hs-CRP, weight), attribute to longstanding behaviors (fasting, sugar elimination since January 2026, BJJ, rucking, weight loss) — these were in effect before the draw.
+4. When writing "What's working" sections, attribute improvements only to interventions that were in effect before the lab draw date. For recent metabolic wins (A1C, insulin, hs-CRP, weight), attribute to longstanding behaviors (fasting, sugar elimination since January 2026, BJJ, weight loss) — these were in effect before the draw.
 5. For physiology rollups (sleep, HRV, steps) drawn from Apple Health, attribute freely to current behaviors because rollups are current by definition.
-6. Blood donation: Robert has donated at OBI multiple times historically. Most recent donation before Jan 27 2026 draw was July 2025. New donation in April 2026. Hematocrit 52.6% on Jan 27 reflects ~6 months without donation. Current hematocrit is likely lower but unmeasured until next draw."""
+6. Blood donation: Robert has donated at OBI multiple times historically. Most recent donation before Jan 27 2026 draw was July 2025. New donation in April 2026. Hematocrit 52.6% on Jan 27 reflects ~6 months without donation. Current hematocrit is likely lower but unmeasured until next draw.
+7. SEASONAL BEHAVIORS: Weighted-vest rucking only occurs April through October (tied to mowing acreage). For the January 27 2026 draw, rucking was NOT in effect. Do not attribute January labs to rucking. BJJ is year-round and is always in effect."""
 
 
 def _default_output_dir() -> Path:
@@ -170,19 +171,34 @@ def validate_timeline_attribution(draft_text: str, timeline_context: str) -> dic
                 "content": (
                     "You are a fact-checker for clinical reports. Given the timeline and a draft section, "
                     "identify any causal or associative attribution that violates the timeline. Flag specifically "
-                    "cases where a biomarker value is attributed to an intervention that started after the biomarker was measured."
+                    "cases where a biomarker value is attributed to an intervention that started after the biomarker was measured. "
+                    "Specifically flag any attribution of January 2026 labs to rucking, mowing, weighted vest, or weighted mowing."
                 ),
             },
             {"role": "user", "content": prompt},
         ],
     )
     raw = (rsp.choices[0].message.content or "").strip()
+    seasonal_re = re.compile(r"\b(rucking|mowing|weighted vest|weighted-vest|weighted mowing)\b", re.I)
+    january_re = re.compile(r"\b(jan(?:uary)?\s*2026|january 27[, ]*2026|january labs|pre-?draw|draw)\b", re.I)
     try:
         data = json.loads(raw)
         if isinstance(data, dict):
+            violations = data.get("violations") or []
+            clean = bool(data.get("clean", False))
+            # Deterministic guard for known seasonal attribution failure mode.
+            if seasonal_re.search(draft_text) and january_re.search(draft_text):
+                violations.append(
+                    {
+                        "line": "Detected January-lab attribution language near rucking/mowing/weighted-vest behavior.",
+                        "issue": "Rucking is seasonal (April-October) and was not in effect for Jan 27, 2026 labs.",
+                        "suggested_fix": "Remove causal attribution to rucking for January labs; use BJJ/year-round behaviors or forward-looking framing for July labs.",
+                    }
+                )
+                clean = False
             return {
-                "violations": data.get("violations") or [],
-                "clean": bool(data.get("clean", False)),
+                "violations": violations,
+                "clean": clean,
                 "raw": raw,
             }
     except Exception:
