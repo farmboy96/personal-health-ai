@@ -55,7 +55,7 @@ def is_unit(line: str) -> bool:
     if u in {"FINAL", "CANCEL", "PRELIMINARY", "CORRECTED", "HIGH", "LOW", "NOT RESULTED", "SEE NOTE:", "SEE NOTE"}: return False
     if DATE_PATTERN.match(s) or TIME_PATTERN.match(s): return False
     if s.startswith("Reference Range"): return False
-    valid_units = {"%", "(calc)", "/100 WBC", "ng/mL", "pg/mL", "mg/dL", "mg/L", "g/dL", "mmol/L", "mIU/L", "mcg/dL", "uIU/mL", "umol/L", "U/L", "fL", "pg", "SD", "Thousand/uL", "Million/uL", "cells/uL", "pmol/L", "nmol/min/mL", "mL/min/1.73m2", "g/dL (calc)", "mg/dL (calc)"}
+    valid_units = {"%", "(calc)", "/100 WBC", "ng/mL", "ng/dL", "pg/mL", "mg/dL", "mg/L", "g/dL", "mmol/L", "mIU/L", "mcg/dL", "uIU/mL", "umol/L", "U/L", "fL", "pg", "SD", "Thousand/uL", "Million/uL", "cells/uL", "pmol/L", "nmol/min/mL", "mL/min/1.73m2", "g/dL (calc)", "mg/dL (calc)"}
     return s in valid_units
 
 def is_reference_range(line: str) -> bool:
