@@ -15,7 +15,7 @@ Subject profile:
 - Location: Guthrie, OK
 
 Current prescription therapies:
-- Testosterone Cypionate 80 mg/week subcutaneous (0.4 mL of 200 mg/mL), prescribed by Dr. Brian Lamkin
+- Testosterone Cypionate 35 mg twice weekly subcutaneous (70 mg/week total, split dosing to flatten peaks), prescribed by Dr. Brian Lamkin
 
 Current supplement stack:
 - Vitamin D3 10,000 IU daily
@@ -24,6 +24,12 @@ Current supplement stack:
 - PerQue Life Guard multivitamin/multimineral, 2 tabsules daily
 - TMG (Betaine) — NOW Foods 1000 mg, 1 tablet with breakfast + 1 tablet with dinner (2000 mg daily, split dosing for methylation support of MTHFR A1298C)
 - Vitamin K — Life Extension Super K, 1 softgel daily with dinner (2000 mcg K1 + 1180 mcg K2 MK-7/MK-4; partners high-dose D3)
+
+Current blood donation pattern:
+- Donates at the Oklahoma Blood Institute
+- Historical pattern: irregular (last donation July 2025 before the Jan 27 2026 lab draw - approximately 6 months between donation and draw)
+- Current pattern: committed to every 6 weeks going forward (most recent donation April 2026)
+- Clinical relevance: Jan 2026 hematocrit 52.6% was measured at peak red cell mass between donations; current hematocrit is likely materially lower. Going forward, regular donations should keep hematocrit in a safer range and also help manage ferritin given HFE H63D carrier status.
 
 Current eating pattern and lifestyle:
 - Intermittent fasting: eating window roughly 11am to 7pm daily (16:8 pattern)
