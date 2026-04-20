@@ -103,6 +103,32 @@ def extract_lab_date(lines: List[str]) -> Optional[str]:
             if m: reported = m.group(1)
     return collected or reported
 
+def extract_document_lab_date(pages_lines: List[List[str]]) -> Optional[str]:
+    collected = None
+    reported = None
+    for lines in pages_lines:
+        for i, line in enumerate(lines):
+            if line.upper().startswith("COLLECTED:"):
+                m = DATE_PATTERN.search(line) or (DATE_PATTERN.search(lines[i + 1]) if i + 1 < len(lines) else None)
+                if m:
+                    collected = m.group(1)
+                    break
+        if collected:
+            break
+    if collected:
+        return collected
+
+    for lines in pages_lines:
+        for i, line in enumerate(lines):
+            if line.upper().startswith("REPORTED:"):
+                m = DATE_PATTERN.search(line) or (DATE_PATTERN.search(lines[i + 1]) if i + 1 < len(lines) else None)
+                if m:
+                    reported = m.group(1)
+                    break
+        if reported:
+            break
+    return reported
+
 def trim_to_results_section(lines: List[str]) -> List[str]:
     start_idx = next((i + 1 for i, line in enumerate(lines) if normalize(line).upper() == "DATE/TM LAB"), None)
     if start_idx is None: return []
@@ -155,7 +181,8 @@ def parse_rows(lines: List[str], page_lab_date: Optional[str]) -> List[Dict]:
         else: i += 1; continue
         
         if test_name.upper() not in {"LIPID PANEL, STANDARD", "COMPREHENSIVE METABOLIC PANEL", "CBC (INCLUDES DIFF/PLT)", "CBC (INCLUDES DIFF/PLT) (CONTINUED FROM PREVIOUS PAGE)", "TESTOSTERONE, FREE (DIALYSIS) AND TOTAL,MS", "CARDIO IQ(R) MYELOPEROXIDASE (MPO)", "CARDIO IQ(R) LP PLA2 ACTIVITY", "ADMA/SDMA"}:
-            results.append({"lab_date": result_date, "source_test_name": test_name, "result_value_text": result_value, "unit": unit, "reference_range": reference_range, "abnormal_flag": abnormal_flag, "status": result_status, "result_time": result_time, "lab_code": lab_code})
+            collected_date = page_lab_date or result_date
+            results.append({"lab_date": collected_date, "source_test_name": test_name, "result_value_text": result_value, "unit": unit, "reference_range": reference_range, "abnormal_flag": abnormal_flag, "status": result_status, "result_time": result_time, "lab_code": lab_code})
         i = j
     return results
 
@@ -163,9 +190,11 @@ def extract_pdf(pdf_path: Path) -> List[Dict]:
     if not pdf_path.exists(): raise FileNotFoundError(f"File not found: {pdf_path}")
     doc = fitz.open(pdf_path)
     all_rows = []
+    pages_lines = [extract_page_lines(doc.load_page(i)) for i in range(doc.page_count)]
+    document_lab_date = extract_document_lab_date(pages_lines)
     for page_index in range(doc.page_count):
-        raw_lines = extract_page_lines(doc.load_page(page_index))
-        page_lab_date = extract_lab_date(raw_lines)
+        raw_lines = pages_lines[page_index]
+        page_lab_date = extract_lab_date(raw_lines) or document_lab_date
         parsed_rows = parse_rows(trim_to_results_section(raw_lines), page_lab_date)
         all_rows.extend(parsed_rows)
     doc.close()
