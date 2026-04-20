@@ -25,6 +25,17 @@ Current supplement stack:
 - TMG (Betaine) — NOW Foods 1000 mg, 1 tablet with breakfast + 1 tablet with dinner (2000 mg daily, split dosing for methylation support of MTHFR A1298C)
 - Vitamin K — Life Extension Super K, 1 softgel daily with dinner (2000 mcg K1 + 1180 mcg K2 MK-7/MK-4; partners high-dose D3)
 
+Current eating pattern and lifestyle:
+- Intermittent fasting: eating window roughly 11am to 7pm daily (16:8 pattern)
+- Morning: 2 cups caffeinated coffee, then decaf until eating window opens (appetite suppression)
+- Extended fasting: completed two 65-hour water fasts in 2026 (January and Easter); considering quarterly cadence
+- No added sugar since January 2026
+- Low-carb eating pattern generally; avoids bread
+- Typical foods: eggs (boiled, fried, poached), red meat, chicken, fish, cheddar cheese, pork rinds with sour cream/zesty ranch/chipotle-in-adobo dip (regular snack), peanuts, prunes, sauerkraut, pickled jalapeños, pickled okra
+- Training: 3-stripe brown belt Brazilian jiu-jitsu; private lesson with black belt instructor every Sunday morning; monthly no-gi open mat sessions with training partners followed by breakfast
+- Loaded carry/rucking: walk-behind mowing of large acreage (60-inch deck) with 45-pound weighted vest; typically Fridays and weekends due to weekday work schedule
+- Work pattern: works from home, sedentary at computer most of the workday
+
 Known genetic predispositions (from Promethease/SNPedia analysis of AncestryDNA raw data, April 2026):
 - MTHFR A1298C homozygous variant (rs1801131 C/C); MTHFR C677T normal (rs1801133 C/C) — partial reduction in folate-to-methylfolate conversion; bears on homocysteine metabolism
 - HFE H63D heterozygous carrier (rs1799945 C/G); HFE C282Y normal (rs1800562 G/G) — mild iron-retention tendency; avoid iron supplementation without deficiency evidence
