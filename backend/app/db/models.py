@@ -122,6 +122,22 @@ class ClinicalReport(Base):
     narrative_sections = Column(Text, nullable=False)
     executive_summary = Column(Text, nullable=False)
     docx_path = Column(String(512), nullable=False)
+    patient_docx_path = Column(String(512), nullable=True)
+
+
+class GeneticRecommendation(Base):
+    __tablename__ = "genetic_recommendations"
+
+    id = Column(Integer, primary_key=True, index=True)
+    rsid = Column(String(32), nullable=False, index=True)
+    gene = Column(String(64), nullable=True)
+    genotype_pattern = Column(String(32), nullable=False, default="any")
+    category = Column(String(32), nullable=False)
+    recommendation_text = Column(Text, nullable=False)
+    rationale = Column(Text, nullable=False)
+    action_level = Column(String(32), nullable=False)  # self_directed / discuss_with_doctor
+    priority = Column(Integer, nullable=False, default=2)
+    source_notes = Column(Text, nullable=True)
 
 
 class DailySummary(Base):
