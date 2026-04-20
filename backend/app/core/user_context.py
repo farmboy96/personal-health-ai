@@ -37,16 +37,27 @@ Current blood donation pattern:
 - Current pattern: committed to every 6 weeks going forward (most recent donation April 2026)
 - Clinical relevance: Jan 2026 hematocrit 52.6% was measured at peak red cell mass between donations; current hematocrit is likely materially lower. Going forward, regular donations should keep hematocrit in a safer range and also help manage ferritin given HFE H63D carrier status.
 
-Current eating pattern and lifestyle:
-- Intermittent fasting: eating window roughly 11am to 7pm daily (16:8 pattern)
-- Morning: 2 cups caffeinated coffee, then decaf until eating window opens (appetite suppression)
-- Extended fasting: completed two 65-hour water fasts in 2026 (January and Easter); considering quarterly cadence
-- No added sugar since January 2026
+Current eating pattern and lifestyle (with timing markers):
+
+Longstanding behaviors (in effect before the January 27, 2026 draw):
+- Intermittent fasting: 16:8 pattern daily (eat 11am-7pm), longstanding
+- Morning: 2 cups caffeinated coffee, then decaf until 11am eating window opens
 - Low-carb eating pattern generally; avoids bread
-- Typical foods: eggs (boiled, fried, poached), red meat, chicken, fish, cheddar cheese, pork rinds with sour cream/zesty ranch/chipotle-in-adobo dip (regular snack), peanuts, prunes, sauerkraut, pickled jalapeños, pickled okra
-- Training: 3-stripe brown belt Brazilian jiu-jitsu; private lesson with black belt instructor every Sunday morning; monthly no-gi open mat sessions with training partners followed by breakfast
-- Loaded carry/rucking: walk-behind mowing of large acreage (60-inch deck) with 45-pound weighted vest; typically Fridays and weekends due to weekday work schedule
-- Work pattern: works from home, sedentary at computer most of the workday
+- Typical foods: eggs (boiled, fried, poached), red meat, chicken, fish, cheddar cheese, pork rinds with sour cream + zesty ranch + chipotle-in-adobo dip (regular snack), peanuts, prunes, sauerkraut, pickled jalapeños, pickled okra
+- Brazilian jiu-jitsu: 3-stripe brown belt; private lesson with black belt instructor every Sunday morning; monthly no-gi open mat sessions — year-round activity, in effect before and after draw
+- Works from home, sedentary at computer most of weekday
+
+Behaviors starting in January 2026 (in effect for approximately 2-4 weeks before the January 27, 2026 draw):
+- No added sugar since early January 2026
+- Completed first 65-hour water fast in January 2026 (before the draw)
+
+Behaviors starting after the January 27, 2026 draw (NOT reflected in January lab values; WILL be reflected in July 2026 draw):
+- Weighted-vest rucking: walk-behind mowing of large acreage with 45-pound weighted vest — started April 2026 (seasonal, roughly April through October; not active November through March)
+- Completed second 65-hour water fast at Easter 2026 (April)
+- Plans quarterly extended fasts going forward
+- Resumed OBI blood donations in April 2026 on 6-week cadence (last pre-draw donation was July 2025; 6 months between donation and January draw)
+
+AI reasoning note: When explaining January 2026 lab values, attribute only to longstanding behaviors and to the January-initiated behaviors (sugar elimination and January fast). Do not attribute January values to rucking, April fast, new donation cadence, or any April 2026 supplement changes. When projecting forward to July 2026 labs, the full new stack becomes attributable.
 
 Known genetic predispositions (from Promethease/SNPedia analysis of AncestryDNA raw data, April 2026):
 - MTHFR A1298C homozygous variant (rs1801131 C/C); MTHFR C677T normal (rs1801133 C/C) — partial reduction in folate-to-methylfolate conversion; bears on homocysteine metabolism
