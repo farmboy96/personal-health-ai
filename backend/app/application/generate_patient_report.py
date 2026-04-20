@@ -677,15 +677,29 @@ def generate_patient_report(clinical_report_id: int | None = None, output_dir: s
             continue
         doc.add_heading(cat, level=2)
         for e in entries:
-            p = doc.add_paragraph()
-            rr = p.add_run(e["recommendation_text"])
-            rr.bold = True
-            doc.add_paragraph(e["rationale"])
-            tag = "[self-directed]" if e["action_level"] == "self_directed" else "[discuss with Dr. Lamkin]"
-            tag_p = doc.add_paragraph(tag)
-            for run in tag_p.runs:
-                run.font.size = Pt(9)
-                run.font.color.rgb = None
+            from docx.shared import Pt, RGBColor
+
+            head = doc.add_paragraph()
+            head.paragraph_format.space_before = Pt(0)
+            head.paragraph_format.space_after = Pt(0)
+            rh = head.add_run(e["recommendation_text"])
+            rh.bold = True
+
+            body = doc.add_paragraph()
+            body.paragraph_format.space_before = Pt(0)
+            body.paragraph_format.space_after = Pt(6)
+            body.add_run(e["rationale"])
+            sep = body.add_run(" — ")
+            sep.font.size = Pt(10.5)
+            tag_txt = (
+                "self-directed"
+                if e["action_level"] == "self_directed"
+                else "discuss with Dr. Lamkin"
+            )
+            tag_run = body.add_run(tag_txt)
+            tag_run.italic = True
+            tag_run.font.size = Pt(9)
+            tag_run.font.color.rgb = RGBColor(128, 128, 128)
 
     for tk, txt in topic_translations.items():
         from app.research.topic_catalog import TOPICS
