@@ -359,6 +359,7 @@ CANONICAL_TESTS = {
     "default_unit": "ng/dL",
     "aliases": [
         "TESTOSTERONE, TOTAL",
+        "TESTOSTERONE, TOTAL, MS",
         "Testosterone, Total (ng/dL)",
     ],
 },
@@ -551,6 +552,27 @@ CANONICAL_TESTS = {
     "panel_name": "Metabolic",
     "default_unit": "mg/dL",
     "aliases": ["URIC ACID"],
+},
+"IGF_1": {
+    "display_name": "IGF-1",
+    "category": "HORMONE",
+    "panel_name": "Hormone",
+    "default_unit": "ng/mL",
+    "aliases": ["IGF 1, LC/MS", "IGF-1 (ng/mL)", "IGF-1"],
+},
+"MPO": {
+    "display_name": "Myeloperoxidase (MPO)",
+    "category": "CARDIO",
+    "panel_name": "Cardio / Inflammation",
+    "default_unit": "pmol/L",
+    "aliases": ["MYELOPEROXIDASE", "CARDIO IQ(R) MYELOPEROXIDASE (MPO)", "MPO"],
+},
+"LP_PLA2": {
+    "display_name": "Lp-PLA2 Activity",
+    "category": "CARDIO",
+    "panel_name": "Cardio / Inflammation",
+    "default_unit": "nmol/min/mL",
+    "aliases": ["LP PLA2 ACTIVITY", "CARDIO IQ(R) LP PLA2 ACTIVITY", "Lp-PLA2"],
 },
 
 }
