@@ -140,6 +140,90 @@ def _numbers_from_context(snapshot: dict[str, Any]) -> set[str]:
     return _extract_normalized_numbers(blob)
 
 
+def _timeline_context_from_snapshot(snapshot: dict[str, Any]) -> str:
+    return (
+        "Most recent lab draw date: 2026-01-27\n"
+        "Known timeline notes:\n"
+        "- Nordic Naturals Ultimate Omega 2X started 2026-04-20 (cannot affect Jan 2026 labs).\n"
+        "- TMG 2000 mg/day started 2026-04-20 (cannot affect Jan 2026 labs).\n"
+        "- Super K started 2026-04-20 (cannot affect Jan 2026 labs).\n"
+        "- Previous fish oil formula was discontinued 2026-04-20.\n"
+        "- Donation timeline: prior donation before Jan draw was July 2025; next donation April 2026.\n"
+        "Current numeric context JSON:\n"
+        + json.dumps(snapshot, indent=2, default=str)
+    )
+
+
+def validate_timeline_attribution(draft_text: str, timeline_context: str) -> dict[str, Any]:
+    client = get_openai_client()
+    prompt = (
+        f"Timeline:\n{timeline_context}\n\n"
+        f"Draft:\n{draft_text}\n\n"
+        "Return strict JSON only with schema:\n"
+        '{"violations":[{"line":"string","issue":"string","suggested_fix":"string"}],"clean":boolean}'
+    )
+    rsp = client.chat.completions.create(
+        model="gpt-5",
+        messages=[
+            {
+                "role": "system",
+                "content": (
+                    "You are a fact-checker for clinical reports. Given the timeline and a draft section, "
+                    "identify any causal or associative attribution that violates the timeline. Flag specifically "
+                    "cases where a biomarker value is attributed to an intervention that started after the biomarker was measured."
+                ),
+            },
+            {"role": "user", "content": prompt},
+        ],
+    )
+    raw = (rsp.choices[0].message.content or "").strip()
+    try:
+        data = json.loads(raw)
+        if isinstance(data, dict):
+            return {
+                "violations": data.get("violations") or [],
+                "clean": bool(data.get("clean", False)),
+                "raw": raw,
+            }
+    except Exception:
+        pass
+    return {
+        "violations": [],
+        "clean": False,
+        "raw": raw,
+    }
+
+
+def _rewrite_timeline_violations(
+    *,
+    draft_text: str,
+    timeline_context: str,
+    violations: list[dict[str, Any]],
+) -> str:
+    client = get_openai_client()
+    prompt = (
+        "Rewrite this draft to remove timeline-attribution violations while preserving all valid numeric facts.\n\n"
+        f"Timeline:\n{timeline_context}\n\n"
+        f"Violations:\n{json.dumps(violations, ensure_ascii=False, indent=2)}\n\n"
+        f"Draft:\n{draft_text}\n\n"
+        "Rules:\n"
+        "- Keep tone and structure.\n"
+        "- Do not invent numbers.\n"
+        "- Use forward-looking wording for post-2026-01-27 interventions.\n"
+    )
+    rsp = client.chat.completions.create(
+        model="gpt-5",
+        messages=[
+            {
+                "role": "system",
+                "content": "You edit patient report text to remove timeline-causality errors without adding new claims.",
+            },
+            {"role": "user", "content": prompt},
+        ],
+    )
+    return (rsp.choices[0].message.content or "").strip()
+
+
 def _ai_section1(patient_context_snapshot: dict[str, Any]) -> str:
     ctx = json.dumps(patient_context_snapshot, indent=2, default=str)
     prompt = f"""Write Section 1: \"How you're doing right now\" for Robert Grogan.
@@ -382,10 +466,23 @@ def generate_patient_report(clinical_report_id: int | None = None, output_dir: s
     out_path = out_dir / f"patient_report_{ts}.docx"
 
     patient_context = json.dumps(snapshot, default=str, indent=2)
-    section1 = _dehedge_text(_ai_section1(snapshot))
+    timeline_context = _timeline_context_from_snapshot(snapshot)
+    section1_initial = _dehedge_text(_ai_section1(snapshot))
+    section1_validation = validate_timeline_attribution(section1_initial, timeline_context)
+    section1 = section1_initial
+    if not section1_validation.get("clean") and section1_validation.get("violations"):
+        section1 = _dehedge_text(
+            _rewrite_timeline_violations(
+                draft_text=section1_initial,
+                timeline_context=timeline_context,
+                violations=section1_validation["violations"],
+            )
+        )
 
     # translate each topic
     topic_translations: dict[str, str] = {}
+    topic_initials: dict[str, str] = {}
+    topic_validation: dict[str, dict[str, Any]] = {}
     cited_pmids: set[str] = set()
     by_topic_studies: dict[str, list[dict[str, Any]]] = {}
     for s in retrieved:
@@ -408,6 +505,18 @@ def generate_patient_report(clinical_report_id: int | None = None, output_dir: s
             patient_context=patient_context,
             allowed_studies=allowed,
         )
+        translated = _dehedge_text(translated)
+        topic_initials[topic_key] = translated
+        v = validate_timeline_attribution(translated, timeline_context)
+        topic_validation[topic_key] = v
+        if not v.get("clean") and v.get("violations"):
+            translated = _dehedge_text(
+                _rewrite_timeline_violations(
+                    draft_text=translated,
+                    timeline_context=timeline_context,
+                    violations=v["violations"],
+                )
+            )
         topic_translations[topic_key] = translated
         cited_pmids.update(_extract_pmids(translated))
 
@@ -569,4 +678,13 @@ def generate_patient_report(clinical_report_id: int | None = None, output_dir: s
         "hedging_hits": hedging_hits,
         "pmid_integrity_ok": pmid_integrity_ok,
         "number_integrity_ok": number_integrity_ok,
+        "timeline_validation": {
+            "timeline_context": timeline_context,
+            "section1_initial": section1_initial,
+            "section1_final": section1,
+            "section1_validation": section1_validation,
+            "topic_initials": topic_initials,
+            "topic_finals": topic_translations,
+            "topic_validation": topic_validation,
+        },
     }
