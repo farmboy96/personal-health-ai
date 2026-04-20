@@ -17,13 +17,19 @@ Subject profile:
 Current prescription therapies:
 - Testosterone Cypionate 35 mg twice weekly subcutaneous (70 mg/week total, split dosing to flatten peaks), prescribed by Dr. Brian Lamkin
 
-Current supplement stack:
-- Vitamin D3 10,000 IU daily
-- DIM (DIMPRO 100) 100 mg daily — estrogen metabolism modulator
-- Fish Oil — Nordic Naturals Ultimate Omega 2X, 2 softgels nightly (2160 mg combined EPA+DHA)
-- PerQue Life Guard multivitamin/multimineral, 2 tabsules daily
-- TMG (Betaine) — NOW Foods 1000 mg, 1 tablet with breakfast + 1 tablet with dinner (2000 mg daily, split dosing for methylation support of MTHFR A1298C)
-- Vitamin K — Life Extension Super K, 1 softgel daily with dinner (2000 mcg K1 + 1180 mcg K2 MK-7/MK-4; partners high-dose D3)
+Current supplement stack (with start dates — critical for interpreting lab trends):
+- Vitamin D3 10,000 IU daily — started approximately 2018 (longstanding)
+- DIM (DIMPRO 100) 100 mg daily — started approximately 2022 (longstanding)
+- PerQue Life Guard multivitamin/multimineral, 2 tabsules daily — started approximately 2020 (longstanding)
+- Fish Oil (Nature Made 1200mg, ~720 mg combined EPA+DHA) — discontinued April 20, 2026
+- Fish Oil (Nordic Naturals Ultimate Omega 2X, 2 softgels nightly, 2160 mg combined EPA+DHA) — STARTED April 20, 2026 (today; has not yet affected any existing lab values)
+- TMG (Betaine) NOW Foods 1000 mg, 1 tablet breakfast + 1 tablet dinner (2000 mg daily total) — STARTED April 20, 2026 (today; has not yet affected any existing lab values)
+- Vitamin K (Life Extension Super K, 1 softgel daily with dinner) — STARTED April 20, 2026 (today; has not yet affected any existing lab values)
+- 5-HTP 200 mg (Arazo Nutrition) — DISCONTINUED April 20, 2026 (previously longstanding)
+
+Most recent blood draw: January 27, 2026. Values from this draw cannot have been influenced by supplements initiated after this date.
+
+Next scheduled blood draw: July 2026 (post-visit with Dr. Lamkin in August 2026). This will be the first draw reflecting the new supplement stack started April 20, 2026.
 
 Current blood donation pattern:
 - Donates at the Oklahoma Blood Institute

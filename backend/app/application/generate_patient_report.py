@@ -26,6 +26,13 @@ from app.db.models import ClinicalReport, GeneticRecommendation, GeneticVariant
 logger = logging.getLogger(__name__)
 
 HEDGING_TERMS = ["consider", "may want to", "it might be beneficial"]
+TIMELINE_RULES_BLOCK = """TIMELINE REASONING RULES (mandatory):
+1. Labs are dated. Supplements and behaviors are dated. Never attribute a lab value to an intervention that started after the lab was drawn.
+2. The most recent lab draw is January 27, 2026. If a supplement or behavior started AFTER January 27, 2026, it cannot have affected any current lab value. Do not write phrases like "consistent with [new intervention]" or "reflecting [new intervention]" for any current biomarker.
+3. When writing about future lab trajectories, use explicit forward-looking framing: "Expected in July 2026 labs after TMG exposure" — not "consistent with your TMG".
+4. When writing "What's working" sections, attribute improvements only to interventions that were in effect before the lab draw date. For recent metabolic wins (A1C, insulin, hs-CRP, weight), attribute to longstanding behaviors (fasting, sugar elimination since January 2026, BJJ, rucking, weight loss) — these were in effect before the draw.
+5. For physiology rollups (sleep, HRV, steps) drawn from Apple Health, attribute freely to current behaviors because rollups are current by definition.
+6. Blood donation: Robert has donated at OBI multiple times historically. Most recent donation before Jan 27 2026 draw was July 2025. New donation in April 2026. Hematocrit 52.6% on Jan 27 reflects ~6 months without donation. Current hematocrit is likely lower but unmeasured until next draw."""
 
 
 def _default_output_dir() -> Path:
@@ -145,12 +152,17 @@ Output 3-5 short paragraphs. Requirements:
 - Tie each number to an observed behavior where plausible.
 - Do not invent numbers.
 - Tone: direct, informed, zero fluff.
+
+{TIMELINE_RULES_BLOCK}
 """
     client = get_openai_client()
     rsp = client.chat.completions.create(
         model="gpt-5",
         messages=[
-            {"role": "system", "content": "You write precise patient-facing health analysis from provided numbers only."},
+            {
+                "role": "system",
+                "content": "You write precise patient-facing health analysis from provided numbers only, with strict timeline causality discipline.",
+            },
             {"role": "user", "content": prompt},
         ],
     )
@@ -194,6 +206,8 @@ From the patient context, matched genetic recommendations, and topic narratives 
 Write in direct voice: "Switch X to Y" not "consider switching X to Y." The reader is motivated and capable; give him the action plainly.
 
 Output exactly 5 top-level bullets, each beginning with "- ".
+
+{TIMELINE_RULES_BLOCK}
 """
     full_prompt = (
         f"{prompt}\n\n"
@@ -207,7 +221,7 @@ Output exactly 5 top-level bullets, each beginning with "- ".
         messages=[
             {
                 "role": "system",
-                "content": "You create direct patient action plans. No hedging. No citations in this section.",
+                "content": "You create direct patient action plans. No hedging. No citations in this section. Follow strict timeline causality rules.",
             },
             {"role": "user", "content": full_prompt},
         ],
@@ -296,6 +310,8 @@ Allowed studies JSON:
 {studies_blob}
 
 Allowed PMIDs only: {", ".join(allowed_pmids)}
+
+{TIMELINE_RULES_BLOCK}
 """
     client = get_openai_client()
     rsp = client.chat.completions.create(
@@ -303,7 +319,7 @@ Allowed PMIDs only: {", ".join(allowed_pmids)}
         messages=[
             {
                 "role": "system",
-                "content": "You produce direct patient action guides with strict PMID discipline and no invented claims.",
+                "content": "You produce direct patient action guides with strict PMID discipline, no invented claims, and strict timeline causality discipline.",
             },
             {"role": "user", "content": prompt},
         ],

@@ -34,6 +34,13 @@ from app.research.topic_research import research_topic
 logger = logging.getLogger(__name__)
 
 DEFAULT_REPORT_TITLE = "Clinical Review for Dr. Brian Lamkin"
+TIMELINE_RULES_BLOCK = """TIMELINE REASONING RULES (mandatory):
+1. Labs are dated. Supplements and behaviors are dated. Never attribute a lab value to an intervention that started after the lab was drawn.
+2. The most recent lab draw is January 27, 2026. If a supplement or behavior started AFTER January 27, 2026, it cannot have affected any current lab value. Do not write phrases like "consistent with [new intervention]" or "reflecting [new intervention]" for any current biomarker.
+3. When writing about future lab trajectories, use explicit forward-looking framing: "Expected in July 2026 labs after TMG exposure" ? not "consistent with your TMG".
+4. When writing "What's working" sections, attribute improvements only to interventions that were in effect before the lab draw date. For recent metabolic wins (A1C, insulin, hs-CRP, weight), attribute to longstanding behaviors (fasting, sugar elimination since January 2026, BJJ, rucking, weight loss) ? these were in effect before the draw.
+5. For physiology rollups (sleep, HRV, steps) drawn from Apple Health, attribute freely to current behaviors because rollups are current by definition.
+6. Blood donation: Robert has donated at OBI multiple times historically. Most recent donation before Jan 27 2026 draw was July 2025. New donation in April 2026. Hematocrit 52.6% on Jan 27 reflects ~6 months without donation. Current hematocrit is likely lower but unmeasured until next draw."""
 
 
 def _backend_root() -> Path:
@@ -123,7 +130,9 @@ Include:
 3) What questions the literature sections address.
 4) What you are asking the physician to review or discuss.
 
-CRITICAL: Do not invent any findings, lab values, or genetic results not explicitly present in the patient context. Do not cite PMIDs in the executive summary."""
+CRITICAL: Do not invent any findings, lab values, or genetic results not explicitly present in the patient context. Do not cite PMIDs in the executive summary.
+
+{TIMELINE_RULES_BLOCK}"""
 
     client = get_openai_client()
     response = client.chat.completions.create(
@@ -131,7 +140,7 @@ CRITICAL: Do not invent any findings, lab values, or genetic results not explici
         messages=[
             {
                 "role": "system",
-                "content": "You write concise clinical executive summaries without fabricating data.",
+                "content": "You write concise clinical executive summaries without fabricating data and with strict timeline causality discipline.",
             },
             {"role": "user", "content": prompt},
         ],
