@@ -7,6 +7,8 @@ Run from repo root:
 
 from __future__ import annotations
 
+import json
+import subprocess
 import sys
 from datetime import date, datetime
 from pathlib import Path
@@ -25,7 +27,7 @@ from app.application.generate_daily_summary import (
     load_latest_summary,
 )
 from app.db.database import SessionLocal
-from app.db.models import DailySummary, GeneticVariant, LabResult, RawMeasurement
+from app.db.models import ClinicalReport, DailySummary, GeneticVariant, LabResult, RawMeasurement
 from app.domain.assessment.apple_health_rollup import (
     METRICS_TO_ROLL,
     _build_sleep_daily_hours,
@@ -72,6 +74,56 @@ def fetch_overview_row(db, explicit_id: int | None) -> DailySummary | None:
     if explicit_id is None:
         return load_latest_summary(db)
     return db.query(DailySummary).filter(DailySummary.id == explicit_id).first()
+
+
+def fetch_clinical_reports(db, limit: int | None = None) -> list[ClinicalReport]:
+    q = db.query(ClinicalReport).order_by(desc(ClinicalReport.created_at))
+    if limit is not None:
+        q = q.limit(limit)
+    return q.all()
+
+
+def parse_topic_areas(raw: str | None) -> list[str]:
+    if not raw:
+        return []
+    try:
+        parsed = json.loads(raw)
+        if isinstance(parsed, list):
+            return [str(x) for x in parsed]
+    except Exception:
+        pass
+    return [raw]
+
+
+def open_file_in_windows(path: str) -> tuple[bool, str]:
+    try:
+        p = Path(path)
+        if not p.exists():
+            return False, f"File not found: {path}"
+        subprocess.run(
+            ["cmd", "/c", "start", "", str(p)],
+            check=True,
+            cwd=str(_ROOT),
+        )
+        return True, ""
+    except Exception as e:
+        return False, str(e)
+
+
+def run_unified_report_generation() -> tuple[bool, str]:
+    cmd = [str(_ROOT / "backend" / ".venv" / "Scripts" / "python.exe"), str(_ROOT / "backend" / "scripts" / "generate_clinical_report.py")]
+    try:
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            cwd=str(_ROOT),
+            check=True,
+        )
+        return True, (result.stdout or "").strip()
+    except subprocess.CalledProcessError as e:
+        err = (e.stdout or "") + ("\n" if e.stdout and e.stderr else "") + (e.stderr or "")
+        return False, err.strip()
 
 
 @st.cache_data(ttl=120)
@@ -313,8 +365,15 @@ def main() -> None:
     else:
         m3.metric("Days since last lab", "—")
 
-    tab_ov, tab_lab, tab_phy, tab_gen = st.tabs(
-        ["Overview", "Lab Trends", "Physiology", "Genetics"]
+    dbr = _session()
+    try:
+        all_reports = fetch_clinical_reports(dbr)
+        most_recent_report = all_reports[0] if all_reports else None
+    finally:
+        dbr.close()
+
+    tab_ov, tab_lab, tab_phy, tab_gen, tab_reports = st.tabs(
+        ["Overview", "Lab Trends", "Physiology", "Genetics", "Reports"]
     )
 
     # ----- TAB 1 Overview -----
@@ -329,6 +388,15 @@ def main() -> None:
         if not row:
             st.info("Run **Refresh Analysis** to generate your first cached summary.")
         else:
+            if most_recent_report and most_recent_report.patient_docx_path:
+                q1, q2 = st.columns([2, 5])
+                with q1:
+                    if st.button("Open Latest Patient Report", key="open_latest_patient"):
+                        ok, msg = open_file_in_windows(most_recent_report.patient_docx_path)
+                        if ok:
+                            st.success("Opened patient report in default app.")
+                        else:
+                            st.error(f"Could not open file: {msg}")
             with st.expander("Lab Snapshot", expanded=True):
                 st.code(row.summary_text or "", language=None)
             with st.expander("Physiology Rollups", expanded=True):
@@ -499,6 +567,56 @@ def main() -> None:
         filtered = filter_genetics(raw_rows, mag_min, reps, q)
         df = pd.DataFrame(filtered)
         st.dataframe(df, use_container_width=True, hide_index=True)
+
+    # ----- TAB 5 Reports -----
+    with tab_reports:
+        st.subheader("Generated Reports")
+        st.caption("Open physician or patient reports directly in Word.")
+
+        if st.button("Generate New Report", type="primary", key="gen_new_report"):
+            with st.spinner("Generating physician + patient reports. This can take several minutes..."):
+                ok, msg = run_unified_report_generation()
+            if ok:
+                st.success("New reports generated successfully.")
+                if msg:
+                    st.code(msg)
+                st.rerun()
+            else:
+                st.error("Report generation failed.")
+                if msg:
+                    st.code(msg)
+
+        if not all_reports:
+            st.info("No reports found yet. Click **Generate New Report**.")
+        else:
+            for rep in all_reports:
+                with st.container(border=True):
+                    st.markdown(
+                        f"**Generated:** {rep.created_at.strftime('%Y-%m-%d %H:%M:%S') if rep.created_at else 'Unknown'}"
+                    )
+                    topics = parse_topic_areas(rep.topic_areas)
+                    st.markdown("**Topics:** " + (", ".join(topics) if topics else "(none listed)"))
+
+                    c1, c2 = st.columns(2)
+                    with c1:
+                        if st.button("Open Physician Report", key=f"open_phys_{rep.id}"):
+                            ok, msg = open_file_in_windows(rep.docx_path)
+                            if ok:
+                                st.success("Opened physician report.")
+                            else:
+                                st.error(f"Could not open physician report: {msg}")
+                    with c2:
+                        can_open_patient = bool(rep.patient_docx_path)
+                        if st.button(
+                            "Open Patient Report",
+                            key=f"open_pat_{rep.id}",
+                            disabled=not can_open_patient,
+                        ):
+                            ok, msg = open_file_in_windows(rep.patient_docx_path or "")
+                            if ok:
+                                st.success("Opened patient report.")
+                            else:
+                                st.error(f"Could not open patient report: {msg}")
 
 
 if __name__ == "__main__":
