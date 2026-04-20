@@ -110,6 +110,20 @@ class GeneticVariant(Base):
     created_at = Column(DateTime, default=func.now())
 
 
+class ClinicalReport(Base):
+    __tablename__ = "clinical_reports"
+
+    id = Column(Integer, primary_key=True, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+    report_title = Column(String(256), nullable=False)
+    topic_areas = Column(Text, nullable=False)
+    patient_context_snapshot = Column(Text, nullable=False)
+    retrieved_studies = Column(Text, nullable=False)
+    narrative_sections = Column(Text, nullable=False)
+    executive_summary = Column(Text, nullable=False)
+    docx_path = Column(String(512), nullable=False)
+
+
 class DailySummary(Base):
     __tablename__ = "daily_summaries"
 
