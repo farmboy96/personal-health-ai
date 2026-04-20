@@ -14,3 +14,4 @@ pymupdf==1.27.2.2
 scipy==1.17.1
 streamlit==1.56.0
 plotly==6.7.0
+requests==2.32.3

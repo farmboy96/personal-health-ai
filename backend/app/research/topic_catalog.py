@@ -1,0 +1,35 @@
+"""Pre-built PubMed research topics for Robert's clinical context."""
+
+TOPICS = {
+    "mthfr_homocysteine_trt": {
+        "title": "MTHFR A1298C homozygous + homocysteine management in men on testosterone therapy",
+        "research_question": "What evidence supports methylation support (methylfolate, methylcobalamin, TMG, B6) for homocysteine reduction in men with MTHFR A1298C homozygous variant, particularly those on testosterone replacement therapy?",
+        "pubmed_queries": [
+            "MTHFR A1298C homocysteine methylfolate",
+            "betaine TMG homocysteine reduction",
+            "testosterone therapy homocysteine cardiovascular",
+        ],
+        "max_per_query": 10,
+    },
+    "ldl_trajectory_trt_apoa2": {
+        "title": "Rising LDL trajectory in men on TRT with APOA2 variant (saturated fat sensitivity)",
+        "research_question": "What evidence supports dietary saturated fat restriction, soluble fiber, and marine omega-3 for LDL/ApoB reduction in middle-aged men on TRT with APOA2 rs5082 saturated fat sensitivity? When does pharmacologic lipid lowering become advisable?",
+        "pubmed_queries": [
+            "APOA2 rs5082 saturated fat LDL",
+            "testosterone therapy LDL cholesterol lipid",
+            "EPA DHA omega-3 LDL apolipoprotein B",
+            "ApoB statin threshold primary prevention men",
+        ],
+        "max_per_query": 8,
+    },
+    "prostate_surveillance_trt_high_prs": {
+        "title": "Prostate cancer surveillance in men on TRT with elevated polygenic risk",
+        "research_question": "What is the current evidence on prostate cancer surveillance frequency (PSA cadence, velocity thresholds, imaging) for men on testosterone therapy who also carry elevated polygenic risk variants (e.g., FGFR4, MSMB, HNF1B)?",
+        "pubmed_queries": [
+            "testosterone therapy prostate cancer risk surveillance",
+            "PSA velocity testosterone therapy monitoring",
+            "prostate cancer polygenic risk score screening",
+        ],
+        "max_per_query": 8,
+    },
+}
