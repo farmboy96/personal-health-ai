@@ -329,8 +329,13 @@ Output exactly 5 top-level bullets, each beginning with "- ".
     return _dehedge_text((rsp.choices[0].message.content or "").strip())
 
 
-def _prioritize_august_handoff(questions_grouped: dict[str, list[str]], max_items: int = 5) -> list[str]:
-    # Flatten then rank by key clinical importance themes
+def _prioritize_august_handoff(questions_grouped: dict[str, list[str]], max_items: int = 6) -> list[str]:
+    # Balanced handoff distribution (5-6 items):
+    # - 1-2 lipid, 1 TRT, 1 homocysteine, 1 prostate, 1 monitoring/hematocrit
+    topic_ldl = questions_grouped.get("Topic: ldl_trajectory_trt_apoa2", [])
+    topic_mthfr = questions_grouped.get("Topic: mthfr_homocysteine_trt", [])
+    topic_prostate = questions_grouped.get("Topic: prostate_surveillance_trt_high_prs", [])
+    monitoring = questions_grouped.get("Monitoring", [])
     all_items: list[str] = []
     for _, items in questions_grouped.items():
         all_items.extend(items)
@@ -338,23 +343,72 @@ def _prioritize_august_handoff(questions_grouped: dict[str, list[str]], max_item
     def score(item: str) -> tuple[int, int]:
         t = item.lower()
         s = 0
-        if "psa" in t or "mri" in t or "prostate" in t:
+        if any(k in t for k in ("ldl", "apob", "lipid", "cholesterol", "triglycer", "mpo", "lp-pla2")):
+            s += 7
+        if any(k in t for k in ("testosterone", "trt", "estradiol", "dose")):
             s += 6
-        if "ldl" in t or "apob" in t or "lipid" in t:
+        if any(k in t for k in ("homocysteine", "methyl", "folate", "b12")):
             s += 5
-        if "homocysteine" in t or "methyl" in t or "folate" in t or "b12" in t:
+        if any(k in t for k in ("psa", "mri", "prostate", "biopsy", "urology")):
             s += 5
-        if "ferritin" in t or "iron" in t:
-            s += 3
-        if "thyroid" in t or "tsh" in t or "tpo" in t:
-            s += 2
-        if "vitamin d" in t:
-            s += 1
-        # shorter, actionable phrasing preferred
+        if any(k in t for k in ("hematocrit", "ferritin", "donation", "phlebotomy", "cbc")):
+            s += 4
         return (-s, len(item))
 
-    dedup = sorted(set(all_items), key=score)
-    return dedup[:max_items]
+    selected: list[str] = []
+
+    def _pick(items: list[str], keywords: tuple[str, ...]) -> str | None:
+        ranked = sorted(set(items), key=score)
+        for cand in ranked:
+            if cand in selected:
+                continue
+            lc = cand.lower()
+            if any(k in lc for k in keywords):
+                return cand
+        return None
+
+    # Lipid 1-2
+    lipid_keywords = ("ldl", "apob", "lipid", "cholesterol", "triglycer", "mpo", "lp-pla2")
+    x = _pick(topic_ldl or all_items, lipid_keywords)
+    if x:
+        selected.append(x)
+    x = _pick(topic_ldl or all_items, lipid_keywords)
+    if x:
+        selected.append(x)
+
+    # TRT
+    trt_keywords = ("testosterone", "trt", "estradiol", "dose")
+    x = _pick(topic_mthfr + topic_ldl + all_items, trt_keywords)
+    if x:
+        selected.append(x)
+
+    # Homocysteine
+    homocys_keywords = ("homocysteine", "methyl", "folate", "b12")
+    x = _pick(topic_mthfr + all_items, homocys_keywords)
+    if x:
+        selected.append(x)
+
+    # Prostate
+    prostate_keywords = ("psa", "mri", "prostate", "biopsy", "urology")
+    x = _pick(topic_prostate + all_items, prostate_keywords)
+    if x:
+        selected.append(x)
+
+    # Monitoring / hematocrit
+    monitoring_keywords = ("hematocrit", "ferritin", "donation", "phlebotomy", "cbc")
+    x = _pick(monitoring + all_items, monitoring_keywords)
+    if x:
+        selected.append(x)
+
+    # Fill remaining slots by urgency.
+    for cand in sorted(set(all_items), key=score):
+        if cand in selected:
+            continue
+        selected.append(cand)
+        if len(selected) >= max_items:
+            break
+
+    return selected[:max_items]
 
 
 def _topic_translation_ai(
@@ -412,6 +466,13 @@ Allowed studies JSON:
 Allowed PMIDs only: {", ".join(allowed_pmids)}
 
 {TIMELINE_RULES_BLOCK}
+"""
+    if "ldl_trajectory_trt_apoa2" in topic_title.lower() or "ldl trajectory" in topic_title.lower():
+        prompt += """
+Additional required instruction for this LDL topic:
+- The patient's January 27 2026 labs include two specialty cardiovascular inflammation markers — MPO 573 pmol/L (optimal <470) and Lp-PLA2 activity 209 nmol/min/mL (optimal <124), both flagged high.
+- Reference these in the "What's working" or "What to watch for" sections as supporting evidence for the urgency of lipid management.
+- Do not invent effect sizes; just report the values and cite the flagging.
 """
     client = get_openai_client()
     rsp = client.chat.completions.create(
