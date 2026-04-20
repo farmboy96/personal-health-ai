@@ -157,6 +157,92 @@ Output 3-5 short paragraphs. Requirements:
     return (rsp.choices[0].message.content or "").strip()
 
 
+def _ai_top_5_actions(
+    *,
+    patient_context_snapshot: dict[str, Any],
+    matched_recommendations: list[dict[str, Any]],
+    topic_narratives: dict[str, str],
+) -> str:
+    context_json = json.dumps(patient_context_snapshot, indent=2, default=str)
+    recs_json = json.dumps(
+        [
+            {
+                "category": r.get("category"),
+                "action_level": r.get("action_level"),
+                "priority": r.get("priority"),
+                "recommendation_text": r.get("recommendation_text"),
+                "rationale": r.get("rationale"),
+                "rsid": r.get("rsid"),
+                "gene": r.get("gene"),
+            }
+            for r in matched_recommendations
+        ],
+        ensure_ascii=False,
+    )
+    topics_json = json.dumps(topic_narratives, ensure_ascii=False)
+
+    prompt = """
+From the patient context, matched genetic recommendations, and topic narratives below, select the 5 highest-leverage actions for the patient to focus on over the next 30 days. Criteria:
+
+1. Rank by expected impact on the patient's most concerning biomarker trends (rising LDL, elevated homocysteine, elevated estradiol)
+2. Favor actions the patient can execute alone (diet swaps, routine changes) over discuss-with-doctor items
+3. Each action must be phrased in plain English at an 8th grade reading level
+4. Each action is 1 sentence describing the change, followed by 1-2 sentences explaining why it matters in terms the patient can feel (not medical jargon)
+5. Order by priority, highest leverage first
+6. No PMID citations in this section — keep it clean; citations live in the detail sections
+
+Write in direct voice: "Switch X to Y" not "consider switching X to Y." The reader is motivated and capable; give him the action plainly.
+
+Output exactly 5 top-level bullets, each beginning with "- ".
+"""
+    full_prompt = (
+        f"{prompt}\n\n"
+        f"Patient context snapshot JSON:\n{context_json}\n\n"
+        f"Matched recommendations JSON:\n{recs_json}\n\n"
+        f"Topic narratives JSON:\n{topics_json}\n"
+    )
+    client = get_openai_client()
+    rsp = client.chat.completions.create(
+        model="gpt-5",
+        messages=[
+            {
+                "role": "system",
+                "content": "You create direct patient action plans. No hedging. No citations in this section.",
+            },
+            {"role": "user", "content": full_prompt},
+        ],
+    )
+    return _dehedge_text((rsp.choices[0].message.content or "").strip())
+
+
+def _prioritize_august_handoff(questions_grouped: dict[str, list[str]], max_items: int = 5) -> list[str]:
+    # Flatten then rank by key clinical importance themes
+    all_items: list[str] = []
+    for _, items in questions_grouped.items():
+        all_items.extend(items)
+
+    def score(item: str) -> tuple[int, int]:
+        t = item.lower()
+        s = 0
+        if "psa" in t or "mri" in t or "prostate" in t:
+            s += 6
+        if "ldl" in t or "apob" in t or "lipid" in t:
+            s += 5
+        if "homocysteine" in t or "methyl" in t or "folate" in t or "b12" in t:
+            s += 5
+        if "ferritin" in t or "iron" in t:
+            s += 3
+        if "thyroid" in t or "tsh" in t or "tpo" in t:
+            s += 2
+        if "vitamin d" in t:
+            s += 1
+        # shorter, actionable phrasing preferred
+        return (-s, len(item))
+
+    dedup = sorted(set(all_items), key=score)
+    return dedup[:max_items]
+
+
 def _topic_translation_ai(
     *,
     topic_title: str,
@@ -329,6 +415,13 @@ def generate_patient_report(clinical_report_id: int | None = None, output_dir: s
     retrieved_by_pmid = {str(s.get("pmid")): s for s in retrieved if s.get("pmid")}
     cited_sorted = sorted([p for p in cited_pmids if p in retrieved_by_pmid], key=lambda x: int(x))
 
+    top5_text = _ai_top_5_actions(
+        patient_context_snapshot=snapshot,
+        matched_recommendations=matched,
+        topic_narratives=topic_translations,
+    )
+    august_box = _prioritize_august_handoff(grouped, max_items=5)
+
     # Build docx
     from docx import Document
     from docx.enum.text import WD_ALIGN_PARAGRAPH
@@ -354,6 +447,17 @@ def generate_patient_report(clinical_report_id: int | None = None, output_dir: s
         "It is organized around what you can do now, what you should bring to your next visit, "
         "and what evidence supports each move. Every cited study is real and verifiable by PMID."
     )
+
+    doc.add_heading("Your Top 5 Actions This Month", level=1)
+    add_text_with_bullets(doc, top5_text)
+
+    doc.add_heading("Bring to Dr. Lamkin in August", level=2)
+    box = doc.add_table(rows=1, cols=1)
+    apply_table_layout(box, [6.5])
+    box_cell = box.rows[0].cells[0]
+    box_cell.text = ""
+    for item in august_box:
+        box_cell.add_paragraph(f"- {item}", style="List Bullet")
 
     doc.add_heading("How you're doing right now", level=1)
     for p in section1.split("\n\n"):
@@ -444,6 +548,8 @@ def generate_patient_report(clinical_report_id: int | None = None, output_dir: s
         "topic_sections": topic_translations,
         "recommendation_samples": random.sample(matched, k=min(3, len(matched))),
         "questions_section": grouped,
+        "top5_actions_text": top5_text,
+        "august_handoff_items": august_box,
         "hedging_hits": hedging_hits,
         "pmid_integrity_ok": pmid_integrity_ok,
         "number_integrity_ok": number_integrity_ok,
