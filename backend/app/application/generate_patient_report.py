@@ -2,13 +2,14 @@ from __future__ import annotations
 
 import json
 import logging
+import math
 import random
 import re
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 
-from sqlalchemy import desc
+from sqlalchemy import desc, func
 
 from app.ai.client import get_openai_client
 from app.application._docx_helpers import (
@@ -21,7 +22,12 @@ from app.application._docx_helpers import (
     truncate,
 )
 from app.db.database import SessionLocal
-from app.db.models import ClinicalReport, GeneticRecommendation, GeneticVariant
+from app.db.models import ClinicalReport, GeneticRecommendation, GeneticVariant, LabResult
+from app.domain.assessment.biological_age import (
+    compute_fitness_age,
+    compute_framingham_heart_age,
+    compute_phenotypic_age,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -525,6 +531,123 @@ def _category_display(cat: str) -> str:
     return m.get(cat, cat.title())
 
 
+def _fmt_bio_metric_value(d: dict[str, Any]) -> str:
+    if not d.get("computable"):
+        return "—"
+    v = float(d.get("value") or float("nan"))
+    if math.isnan(v):
+        return "—"
+    return f"{v:.1f}".rstrip("0").rstrip(".")
+
+
+def _fmt_bio_delta_years(d: dict[str, Any]) -> str:
+    if not d.get("computable"):
+        return "—"
+    x = float(d.get("delta") or float("nan"))
+    if math.isnan(x):
+        return "—"
+    sign = "+" if x > 0 else ""
+    return f"{sign}{x:.1f} years"
+
+
+def _interpret_phenotypic_row(d: dict[str, Any]) -> str:
+    if not d.get("computable"):
+        return "More labs needed for Levine phenotypic age."
+    delta = float(d.get("delta") or 0.0)
+    if delta <= -3:
+        return "You appear metabolically younger than your calendar age."
+    if delta >= 3:
+        return "This estimate suggests faster biological aging than calendar age."
+    return "Roughly in line with your calendar age."
+
+
+def _interpret_fitness_row(d: dict[str, Any]) -> str:
+    if not d.get("computable"):
+        return "Resting HR / BMI inputs were insufficient for this estimate."
+    delta = float(d.get("delta") or 0.0)
+    if delta <= -3:
+        return "Estimated cardio fitness is stronger than typical for your age."
+    if delta >= 3:
+        return "Estimated fitness is below typical for your age."
+    return "Estimated fitness is close to typical for your age."
+
+
+def _interpret_framingham_row(d: dict[str, Any]) -> str:
+    if not d.get("computable"):
+        return "Total cholesterol / HDL needed for heart age."
+    delta = float(d.get("delta") or 0.0)
+    if delta <= -3:
+        return "Estimated vascular risk profile is younger than calendar age."
+    return "Your lipid profile contributes to elevated estimated cardiovascular risk vs calendar age."
+
+
+def _add_biological_age_snapshot_docx(doc, phen: dict[str, Any], fit: dict[str, Any], fram: dict[str, Any]) -> None:
+    from docx.shared import Pt
+
+    doc.add_heading("Your biological age snapshot", level=2)
+
+    intro = doc.add_paragraph()
+    intro.paragraph_format.space_after = Pt(6)
+    intro.add_run(
+        "Biological age metrics are different views of how your body is aging compared to calendar time. "
+        "Each number answers a different question; none is a single 'truth.'"
+    )
+
+    chrono = phen.get("chronological_age") or fit.get("chronological_age") or fram.get("chronological_age")
+    try:
+        chrono_s = str(int(round(float(chrono)))) if chrono is not None else "—"
+    except (TypeError, ValueError):
+        chrono_s = "—"
+
+    tbl = doc.add_table(rows=4, cols=5)
+    apply_table_layout(tbl, [1.45, 0.95, 1.05, 1.15, 2.45])
+    headers = ["Metric", "Your age", "Chronological", "Delta", "Interpretation"]
+    for i, h in enumerate(headers):
+        set_cell_text(tbl.rows[0].cells[i], h, bold=True, size_pt=9)
+        shade_cell(tbl.rows[0].cells[i], "D9D9D9")
+
+    rows_spec = [
+        ("Phenotypic Age", phen, _interpret_phenotypic_row),
+        ("Fitness Age", fit, _interpret_fitness_row),
+        ("Framingham Heart Age", fram, _interpret_framingham_row),
+    ]
+    for ri, (label, pack, interp_fn) in enumerate(rows_spec, start=1):
+        cells = tbl.rows[ri].cells
+        set_cell_text(cells[0], label, bold=False, size_pt=9)
+        set_cell_text(cells[1], _fmt_bio_metric_value(pack), size_pt=9)
+        set_cell_text(cells[2], chrono_s, size_pt=9)
+        set_cell_text(cells[3], _fmt_bio_delta_years(pack), size_pt=9)
+        set_cell_text(cells[4], interp_fn(pack), size_pt=9)
+
+    if phen.get("computable") and not math.isnan(float(phen.get("delta") or float("nan"))) and float(phen["delta"]) > 3:
+        ca = doc.add_paragraph()
+        ca.paragraph_format.space_before = Pt(6)
+        ca.paragraph_format.space_after = Pt(6)
+        ca.add_run(
+            "Phenotypic age is notably higher than calendar age on this snapshot — driven by the biomarker "
+            "pattern (inflammation, organ markers, blood counts) rather than lipids alone."
+        )
+
+    if fit.get("computable") and not math.isnan(float(fit.get("delta") or float("nan"))) and float(fit["delta"]) > 3:
+        ca = doc.add_paragraph()
+        ca.paragraph_format.space_before = Pt(6)
+        ca.paragraph_format.space_after = Pt(6)
+        ca.add_run(
+            "Fitness age reads older than calendar age — worth interpreting alongside resting heart rate trends "
+            "and training load; this is an approximation, not a treadmill test."
+        )
+
+    if fram.get("computable") and not math.isnan(float(fram.get("delta") or float("nan"))) and float(fram["delta"]) > 3:
+        ca = doc.add_paragraph()
+        ca.paragraph_format.space_before = Pt(6)
+        ca.paragraph_format.space_after = Pt(6)
+        ca.add_run(
+            "Framingham heart age is elevated versus calendar age — primarily reflecting your lipid profile "
+            "(high total cholesterol and comparatively low HDL), which increases estimated 10-year general "
+            "cardiovascular risk."
+        )
+
+
 def generate_patient_report(clinical_report_id: int | None = None, output_dir: str | None = None) -> dict:
     db = SessionLocal()
     try:
@@ -624,6 +747,16 @@ def generate_patient_report(clinical_report_id: int | None = None, output_dir: s
     )
     august_box = _prioritize_august_handoff(grouped, max_items=5)
 
+    bio_db = SessionLocal()
+    try:
+        mxld = bio_db.query(func.max(LabResult.lab_date)).scalar()
+        ref_lab_date: date = mxld if isinstance(mxld, date) else date(2026, 1, 27)
+        phen_snapshot = compute_phenotypic_age(bio_db, ref_lab_date)
+        fit_snapshot = compute_fitness_age(bio_db, ref_lab_date)
+        fram_snapshot = compute_framingham_heart_age(bio_db, ref_lab_date)
+    finally:
+        bio_db.close()
+
     # Build docx
     from docx import Document
     from docx.enum.text import WD_ALIGN_PARAGRAPH
@@ -662,6 +795,8 @@ def generate_patient_report(clinical_report_id: int | None = None, output_dir: s
         box_cell.add_paragraph(f"- {item}", style="List Bullet")
 
     doc.add_heading("How you're doing right now", level=1)
+    _add_biological_age_snapshot_docx(doc, phen_snapshot, fit_snapshot, fram_snapshot)
+
     for p in section1.split("\n\n"):
         if p.strip():
             doc.add_paragraph(p.strip())
@@ -676,9 +811,9 @@ def generate_patient_report(clinical_report_id: int | None = None, output_dir: s
         if not entries:
             continue
         doc.add_heading(cat, level=2)
-        for e in entries:
-            from docx.shared import Pt, RGBColor
+        from docx.shared import Pt, RGBColor
 
+        for e in entries:
             head = doc.add_paragraph()
             head.paragraph_format.space_before = Pt(0)
             head.paragraph_format.space_after = Pt(0)

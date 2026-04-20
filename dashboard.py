@@ -8,6 +8,7 @@ Run from repo root:
 from __future__ import annotations
 
 import json
+import math
 import subprocess
 import sys
 from datetime import date, datetime
@@ -21,6 +22,13 @@ if str(_BACKEND) not in sys.path:
 
 import streamlit as st
 from sqlalchemy import desc, distinct, func
+
+from app.domain.assessment.biological_age import (
+    compute_fitness_age,
+    compute_framingham_heart_age,
+    compute_phenotypic_age,
+    phenotypic_age_history,
+)
 
 from app.application.generate_daily_summary import (
     execute_daily_summary,
@@ -378,6 +386,79 @@ def main() -> None:
 
     # ----- TAB 1 Overview -----
     with tab_ov:
+        st.markdown("#### Biological age")
+        bio_d = _session()
+        try:
+            mxld = bio_d.query(func.max(LabResult.lab_date)).scalar()
+            ref_d: date = mxld if isinstance(mxld, date) else date(2026, 1, 27)
+            ph = compute_phenotypic_age(bio_d, ref_d)
+            fi = compute_fitness_age(bio_d, ref_d)
+            fr = compute_framingham_heart_age(bio_d, ref_d)
+            phen_series = phenotypic_age_history(bio_d, max_points=30)
+        finally:
+            bio_d.close()
+
+        def _bio_val(pack: dict) -> str:
+            if not pack.get("computable"):
+                return "—"
+            v = float(pack.get("value") or float("nan"))
+            if math.isnan(v):
+                return "—"
+            return f"{v:.1f}".rstrip("0").rstrip(".")
+
+        def _bio_delta_str(pack: dict) -> str | None:
+            if not pack.get("computable"):
+                return None
+            d = float(pack.get("delta") or float("nan"))
+            if math.isnan(d):
+                return None
+            return f"{d:+.1f} y vs calendar"
+
+        bc1, bc2, bc3 = st.columns(3)
+        with bc1:
+            st.metric(
+                "Phenotypic age",
+                _bio_val(ph),
+                delta=_bio_delta_str(ph),
+                delta_color="inverse",
+                help="Levine phenotypic age from labs nearest the latest draw.",
+            )
+        with bc2:
+            st.metric(
+                "Fitness age",
+                _bio_val(fi),
+                delta=_bio_delta_str(fi),
+                delta_color="inverse",
+                help="VO2-based estimate from resting HR + BMI + activity score.",
+            )
+        with bc3:
+            st.metric(
+                "Framingham heart age",
+                _bio_val(fr),
+                delta=_bio_delta_str(fr),
+                delta_color="normal",
+                help="Vascular age from general CVD 10-year risk (lipids model).",
+            )
+
+        if len(phen_series) >= 2:
+            fig_p = go.Figure()
+            fig_p.add_trace(
+                go.Scatter(
+                    x=[p["lab_date"] for p in phen_series],
+                    y=[p["phenotypic_age"] for p in phen_series],
+                    mode="lines+markers",
+                    name="Phenotypic age",
+                )
+            )
+            fig_p.update_layout(
+                height=280,
+                margin=dict(l=10, r=10, t=40, b=10),
+                title="Phenotypic age trajectory (complete panels)",
+            )
+            st.plotly_chart(fig_p, use_container_width=True)
+        elif len(phen_series) == 1:
+            st.caption("Add more lab draws with a full CBC/chemistry panel to chart phenotypic age over time.")
+
         r1, r2 = st.columns([4, 1])
         with r2:
             if st.button("Refresh Analysis", key="ov_refresh"):
