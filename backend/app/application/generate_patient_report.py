@@ -423,6 +423,7 @@ def _topic_translation_ai(
     physician_narrative: str,
     patient_context: str,
     allowed_studies: list[dict[str, Any]],
+    obi_ldl_addon: str = "",
 ) -> str:
     allowed_pmids = [str(s.get("pmid")) for s in allowed_studies if s.get("pmid")]
     studies_blob = json.dumps(
@@ -463,6 +464,9 @@ Topic: {topic_title}
 Patient context:
 {patient_context}
 
+Additional longitudinal context (patient-provided screening / OBI app — use when relevant):
+{obi_ldl_addon if obi_ldl_addon.strip() else "(none)"}
+
 Physician narrative:
 {physician_narrative}
 
@@ -479,6 +483,13 @@ Additional required instruction for this LDL topic:
 - The patient's January 27 2026 labs include two specialty cardiovascular inflammation markers — MPO 573 pmol/L (optimal <470) and Lp-PLA2 activity 209 nmol/min/mL (optimal <124), both flagged high.
 - Reference these in the "What's working" or "What to watch for" sections as supporting evidence for the urgency of lipid management.
 - Do not invent effect sizes; just report the values and cite the flagging.
+"""
+        if obi_ldl_addon.strip():
+            prompt += """
+OBI screening cholesterol trajectory (finger-stick at donation; distinct from venous lab TOTAL_CHOLESTEROL):
+- When the additional longitudinal context block lists dated OBI total cholesterol values, incorporate the multi-year trajectory into "What's working" and/or "What to adjust" where it strengthens the narrative (directionally reliable; less precise than venous labs).
+- The March 28, 2026 OBI total cholesterol (311 mg/dL in the patient-provided series) is the highest on record in that dataset; cholesterol has been chronically elevated since at least September 2022 in that series.
+- In "What to discuss with Dr. Lamkin", explicitly include pulling the statin / intensive LDL-lowering pharmacotherapy conversation forward — grounded in both venous LDL from January 2026 labs and this multi-year OBI screening trajectory with the March 2026 peak.
 """
     client = get_openai_client()
     rsp = client.chat.completions.create(
@@ -688,6 +699,27 @@ def generate_patient_report(clinical_report_id: int | None = None, output_dir: s
     for s in retrieved:
         by_topic_studies.setdefault(str(s.get("topic_key") or ""), []).append(s)
 
+    from app.domain.assessment.obi_screening import (
+        format_obi_bp_line_for_prompt,
+        format_obi_cholesterol_trajectory_for_prompt,
+    )
+
+    db_obi = SessionLocal()
+    try:
+        mx_lab = db_obi.query(func.max(LabResult.lab_date)).scalar()
+        ref_lab_date: date = mx_lab if isinstance(mx_lab, date) else date(2026, 1, 27)
+        obi_chol_blob = format_obi_cholesterol_trajectory_for_prompt(db_obi)
+        obi_bp_line = format_obi_bp_line_for_prompt(db_obi, ref_lab_date)
+    finally:
+        db_obi.close()
+
+    obi_ldl_parts: list[str] = []
+    if obi_chol_blob.strip():
+        obi_ldl_parts.append(obi_chol_blob.strip())
+    if obi_bp_line.strip():
+        obi_ldl_parts.append(obi_bp_line.strip())
+    obi_ldl_combined = "\n\n".join(obi_ldl_parts)
+
     for topic_key, physician_text in narratives.items():
         topic_title = topic_key
         if topic_key in {
@@ -704,6 +736,7 @@ def generate_patient_report(clinical_report_id: int | None = None, output_dir: s
             physician_narrative=physician_text,
             patient_context=patient_context,
             allowed_studies=allowed,
+            obi_ldl_addon=obi_ldl_combined if topic_key == "ldl_trajectory_trt_apoa2" else "",
         )
         translated = _dehedge_text(translated)
         topic_initials[topic_key] = translated
