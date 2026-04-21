@@ -16,9 +16,15 @@ import re
 from datetime import date, datetime, timedelta
 from typing import Any
 
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.db.models import LabResult, RawMeasurement
+
+OBI_APP_SOURCE = "obi_app"
+BP_SYSTOLIC_METRIC = "BP_SYSTOLIC"
+BP_DIASTOLIC_METRIC = "BP_DIASTOLIC"
+OBI_PULSE_METRIC = "OBI_PULSE"
 
 PHENOTYPIC_CODES = (
     "ALBUMIN",
@@ -250,37 +256,40 @@ def compute_phenotypic_age(db: Session, as_of_date: date) -> dict[str, Any]:
     return built
 
 
-def _nearest_resting_hr_bpm(db: Session, as_of_date: date, window_days: int = 120) -> float | None:
-    center = datetime.combine(as_of_date, datetime.min.time())
-    lo = center - timedelta(days=window_days)
-    hi = center + timedelta(days=window_days)
+def _apple_health_rhr_30d_average_bpm(db: Session, as_of_date: date) -> float | None:
+    """Mean HKQuantityTypeIdentifierRestingHeartRate over [as_of_date-30d, as_of_date] (preferred for fitness age)."""
+    start = datetime.combine(as_of_date - timedelta(days=30), datetime.min.time())
+    end = datetime.combine(as_of_date, datetime.max.time())
+    q = (
+        db.query(func.avg(RawMeasurement.value))
+        .filter(
+            RawMeasurement.metric_type == RHR_METRIC,
+            RawMeasurement.start_date >= start,
+            RawMeasurement.start_date <= end,
+            RawMeasurement.value.isnot(None),
+        )
+        .scalar()
+    )
+    if q is None:
+        return None
+    return float(q)
+
+
+def _obi_seated_pulse_nearest_bpm(db: Session, as_of_date: date) -> tuple[float | None, date | None]:
+    """OBI donation seated pulse (not true RHR) — nearest absolute date to as_of_date."""
     rows = (
         db.query(RawMeasurement)
         .filter(
-            RawMeasurement.metric_type == RHR_METRIC,
-            RawMeasurement.start_date >= lo,
-            RawMeasurement.start_date <= hi,
+            RawMeasurement.metric_type == OBI_PULSE_METRIC,
+            RawMeasurement.source_name == OBI_APP_SOURCE,
             RawMeasurement.value.isnot(None),
         )
         .all()
     )
-    if rows:
-        best = min(rows, key=lambda r: abs((r.start_date.date() - as_of_date).days))
-        return float(best.value) if best.value is not None else None
-    rows2 = (
-        db.query(RawMeasurement)
-        .filter(
-            RawMeasurement.metric_type == RHR_METRIC,
-            RawMeasurement.value.isnot(None),
-        )
-        .order_by(RawMeasurement.start_date.desc())
-        .limit(50)
-        .all()
-    )
-    if rows2:
-        best = min(rows2, key=lambda r: abs((r.start_date.date() - as_of_date).days))
-        return float(best.value) if best.value is not None else None
-    return None
+    if not rows:
+        return None, None
+    best = min(rows, key=lambda r: abs((r.start_date.date() - as_of_date).days))
+    return (float(best.value), best.start_date.date()) if best.value is not None else (None, None)
 
 
 def compute_fitness_age(db: Session, as_of_date: date) -> dict[str, Any]:
@@ -292,19 +301,41 @@ def compute_fitness_age(db: Session, as_of_date: date) -> dict[str, Any]:
     simplification — see Nes et al. 2013 for the World Fitness Level line of work.
 
     Physical activity score for Robert = 5 (vigorous >=30 min, >=3x/week per user context).
+
+    Resting HR hierarchy:
+    1) Apple Health 30-day average RestingHeartRate ending on as_of_date (true RHR).
+    2) Fallback: nearest OBI seated pulse at donation (less precise).
     """
     chrono = _parse_chronological_age_from_context()
     missing: list[str] = []
 
-    rhr = _nearest_resting_hr_bpm(db, as_of_date)
-    if rhr is None:
-        missing.append("resting_heart_rate_apple_health")
+    rhr_source = ""
+    rhr_detail = ""
+    ah_avg = _apple_health_rhr_30d_average_bpm(db, as_of_date)
+    if ah_avg is not None:
+        rhr_used = ah_avg
+        rhr_source = "apple_health_30d_avg"
+        rhr_detail = "30-day mean of HKQuantityTypeIdentifierRestingHeartRate through as_of_date"
+    else:
+        obi_pulse, obi_d = _obi_seated_pulse_nearest_bpm(db, as_of_date)
+        if obi_pulse is not None:
+            rhr_used = obi_pulse
+            rhr_source = "obi_seated_pulse_fallback"
+            rhr_detail = (
+                f"Seated pulse at OBI donation on {obi_d.isoformat() if obi_d else '?'} "
+                "(not true resting heart rate — lower precision than Apple Health RHR)"
+            )
+        else:
+            rhr_used = None
 
     _, _, bmi_static = _parse_height_weight_bmi()
     bmi_roll = _bmi_from_rollups(db)
     bmi = bmi_roll if bmi_roll is not None else bmi_static
     if bmi is None:
         missing.append("bmi_height_weight")
+
+    if rhr_used is None:
+        missing.append("resting_hr_apple_30d_avg_or_obi_pulse_fallback")
 
     if missing:
         return _empty_payload(
@@ -320,7 +351,7 @@ def compute_fitness_age(db: Session, as_of_date: date) -> dict[str, Any]:
         21.2870
         + (0.1654 * chrono)
         - (0.1612 * bmi)
-        - (0.1845 * rhr)
+        - (0.1845 * rhr_used)
         + 6.2
         + activity_score
     )
@@ -331,7 +362,9 @@ def compute_fitness_age(db: Session, as_of_date: date) -> dict[str, Any]:
     delta = fitness_age - chrono
 
     components = {
-        "resting_hr_bpm": rhr,
+        "resting_hr_bpm_used": rhr_used,
+        "rhr_source": rhr_source,
+        "rhr_detail": rhr_detail,
         "bmi": bmi,
         "bmi_source": "apple_health_body_mass" if bmi_roll is not None else "user_context_height_weight",
         "activity_score_0_to_5": activity_score,
@@ -436,8 +469,8 @@ def compute_framingham_heart_age(db: Session, as_of_date: date) -> dict[str, Any
     Framingham 'heart age' — age of a reference man (ideal TC 180, HDL 45, same BP/smoking/dx flags)
     with the same 10-year general CVD risk as the patient (lipid model).
 
-    SBP: if no BP measurements in Apple Health near as_of_date, assume 120 mmHg and untreated
-    (documented assumption per product requirement).
+    SBP from OBI screening BP when available (see _resolve_bp_for_framingham); else Apple Health cuff;
+    else default 120 mmHg untreated assumption.
     """
     chrono = _parse_chronological_age_from_context()
     draw, tc, hdl, missing = _resolve_lipid_draw(db, as_of_date)
@@ -449,7 +482,7 @@ def compute_framingham_heart_age(db: Session, as_of_date: date) -> dict[str, Any
             missing_inputs=missing or ["TOTAL_CHOLESTEROL", "HDL"],
         )
 
-    sbp, sbp_assumption = _resolve_systolic_bp_mmhg(db, as_of_date)
+    sbp, sbp_assumption, dbp_used = _resolve_bp_for_framingham(db, as_of_date)
 
     risk_patient = framingham_10yr_cvd_risk_men(
         age=chrono,
@@ -482,6 +515,7 @@ def compute_framingham_heart_age(db: Session, as_of_date: date) -> dict[str, Any
         "ten_year_cvd_risk": risk_patient,
         "reference_lipids_tc_hdl": {"tc_mg_dl": 180.0, "hdl_mg_dl": 45.0},
         "heart_age_years": heart_age,
+        "diastolic_bp_mmhg_used": dbp_used,
     }
     return {
         "value": float(heart_age),
@@ -494,18 +528,82 @@ def compute_framingham_heart_age(db: Session, as_of_date: date) -> dict[str, Any
     }
 
 
-def _resolve_systolic_bp_mmhg(db: Session, as_of_date: date, window_days: int = 180) -> tuple[float, str]:
-    """Nearest systolic BP from Apple Health if present; else default 120 (untreated assumption)."""
+def _obi_bp_pair_for_date(db: Session, day: date) -> tuple[float | None, float | None]:
+    start = datetime.combine(day, datetime.min.time())
+    end = datetime.combine(day, datetime.max.time())
+    sys_row = (
+        db.query(RawMeasurement)
+        .filter(
+            RawMeasurement.metric_type == BP_SYSTOLIC_METRIC,
+            RawMeasurement.source_name == OBI_APP_SOURCE,
+            RawMeasurement.start_date >= start,
+            RawMeasurement.start_date <= end,
+            RawMeasurement.value.isnot(None),
+        )
+        .first()
+    )
+    dia_row = (
+        db.query(RawMeasurement)
+        .filter(
+            RawMeasurement.metric_type == BP_DIASTOLIC_METRIC,
+            RawMeasurement.source_name == OBI_APP_SOURCE,
+            RawMeasurement.start_date >= start,
+            RawMeasurement.start_date <= end,
+            RawMeasurement.value.isnot(None),
+        )
+        .first()
+    )
+    sbp = float(sys_row.value) if sys_row and sys_row.value is not None else None
+    dbp = float(dia_row.value) if dia_row and dia_row.value is not None else None
+    return sbp, dbp
+
+
+def _resolve_bp_for_framingham(db: Session, as_of_date: date) -> tuple[float, str, float | None]:
+    """
+    Systolic BP for Framingham:
+    1) OBI finger-stick/cuff screening: most recent BP_SYSTOLIC on or before as_of_date (paired with
+       BP_DIASTOLIC from the same calendar day when present).
+    2) If no prior OBI reading, use OBI reading with nearest absolute date to as_of_date.
+    3) Else Apple Health systolic in a window around as_of_date (legacy fallback).
+    4) Else default 120 mmHg (untreated assumption; document).
+
+    Method (1) matches clinical “last known BP before index date” for risk scoring.
+    """
+    rows = (
+        db.query(RawMeasurement)
+        .filter(
+            RawMeasurement.metric_type == BP_SYSTOLIC_METRIC,
+            RawMeasurement.source_name == OBI_APP_SOURCE,
+            RawMeasurement.value.isnot(None),
+        )
+        .all()
+    )
+    if rows:
+        on_or_before = [r for r in rows if r.start_date.date() <= as_of_date]
+        if on_or_before:
+            pick = max(on_or_before, key=lambda r: r.start_date)
+            note = "obi_systolic_most_recent_on_or_before_lab_date"
+        else:
+            pick = min(rows, key=lambda r: abs((r.start_date.date() - as_of_date).days))
+            note = "obi_systolic_nearest_absolute_no_prior_reading"
+        d = pick.start_date.date()
+        sbp = float(pick.value)
+        _, dbp = _obi_bp_pair_for_date(db, d)
+        detail = f"{note}:{d.isoformat()}"
+        return sbp, detail, dbp
+
+    # Apple Health fallback (watch / phone cuff)
     candidates = (
         "HKQuantityTypeIdentifierBloodPressureSystolic",
         "HKQuantityTypeIdentifierBloodPressure",
     )
+    window_days = 180
     center = datetime.combine(as_of_date, datetime.min.time())
     lo = center - timedelta(days=window_days)
     hi = center + timedelta(days=window_days)
 
     for mt in candidates:
-        rows = (
+        ah_rows = (
             db.query(RawMeasurement)
             .filter(
                 RawMeasurement.metric_type == mt,
@@ -515,16 +613,17 @@ def _resolve_systolic_bp_mmhg(db: Session, as_of_date: date, window_days: int = 
             )
             .all()
         )
-        if not rows:
+        if not ah_rows:
             continue
-        best = min(rows, key=lambda r: abs((r.start_date.date() - as_of_date).days))
+        best = min(ah_rows, key=lambda r: abs((r.start_date.date() - as_of_date).days))
         if best.value is None:
             continue
         v = float(best.value)
         if mt.endswith("BloodPressure") and v > 300:
             continue
-        return v, f"apple_health:{mt}"
-    return 120.0, "default_120_not_on_hypertension_meds"
+        return v, f"apple_health:{mt}", None
+
+    return 120.0, "default_120_not_on_hypertension_meds", None
 
 
 def phenotypic_age_history(db: Session, max_points: int = 40) -> list[dict[str, Any]]:
