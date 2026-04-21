@@ -5,7 +5,7 @@ import argparse
 from datetime import datetime
 import xml.etree.ElementTree as ET
 from sqlalchemy.orm import Session
-from sqlalchemy import text
+from sqlalchemy import func, text
 from sqlalchemy.dialects.sqlite import insert
 
 # Allow module to be executed from backend root via `python -m app.ingestion.apple_health.xml_ingest`
@@ -235,6 +235,17 @@ def ingest_apple_health_xml(db: Session, xml_filepath: str):
         import_run.end_time = datetime.utcnow()
         db.commit()
         print(f"[INFO] Ingestion successful! Added: {import_run.records_added}, Skipped: {import_run.records_skipped}, Total Seen: {import_run.records_seen}")
+
+        breakdown = (
+            db.query(RawMeasurement.metric_type, func.count(RawMeasurement.id))
+            .filter(RawMeasurement.import_run_id == import_run.id)
+            .group_by(RawMeasurement.metric_type)
+            .all()
+        )
+        if breakdown:
+            print("[INFO] Rows attributed to this import_run by metric_type:")
+            for mt, cnt in sorted(breakdown, key=lambda x: (-x[1], x[0])):
+                print(f"       {mt}: {cnt}")
 
     except Exception as e:
         db.rollback()
