@@ -1,34 +1,24 @@
 from app.db.repositories.lab_repository import get_trend_for_test
+from app.db.models import LabTestCatalog
 from app.domain.assessment.trend_analysis import compute_trend, format_trend_line
 
 
 def build_health_snapshot(db):
-    """
-    Pull key metrics we care about.
-    Keep this tight. No fluff.
-    """
     metrics = {}
-    key_tests = [
-        "TSH",
-        "A1C",
-        "GLUCOSE",
-        "VITAMIN_D_25_OH_TOTAL",
-        "TESTOSTERONE_TOTAL",
-        "TESTOSTERONE_FREE",
-        "ESTRADIOL",
-        "FERRITIN",
-        "HS_CRP",
-        "HOMOCYSTEINE",
-        "TOTAL_CHOLESTEROL",
-        "LDL",
-        "HDL",
-        "TRIGLYCERIDES",
-        "INSULIN",
+    catalog_codes = [
+        row.canonical_code
+        for row in (
+            db.query(LabTestCatalog)
+            .filter(LabTestCatalog.active == 1)
+            .order_by(LabTestCatalog.id)
+            .all()
+        )
     ]
 
-    for test in key_tests:
-        trend = get_trend_for_test(db, test)
-        if not trend: continue
+    for code in catalog_codes:
+        trend = get_trend_for_test(db, code)
+        if not trend:
+            continue
 
         latest = trend[-1]
         previous = trend[-2] if len(trend) > 1 else None
@@ -36,7 +26,7 @@ def build_health_snapshot(db):
         series_for_trend = [{"date": row["date"], "value": row["value"]} for row in trend]
         trend_stats = compute_trend(series_for_trend)
 
-        metrics[test] = {
+        metrics[code] = {
             "latest": latest,
             "previous": previous,
             "delta": (

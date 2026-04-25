@@ -424,6 +424,7 @@ def _topic_translation_ai(
     patient_context: str,
     allowed_studies: list[dict[str, Any]],
     obi_ldl_addon: str = "",
+    topic_key: str | None = None,
 ) -> str:
     allowed_pmids = [str(s.get("pmid")) for s in allowed_studies if s.get("pmid")]
     studies_blob = json.dumps(
@@ -490,6 +491,11 @@ OBI screening cholesterol trajectory (finger-stick at donation; distinct from ve
 - When the additional longitudinal context block lists dated OBI total cholesterol values, incorporate the multi-year trajectory into "What's working" and/or "What to adjust" where it strengthens the narrative (directionally reliable; less precise than venous labs).
 - The March 28, 2026 OBI total cholesterol (311 mg/dL in the patient-provided series) is the highest on record in that dataset; cholesterol has been chronically elevated since at least September 2022 in that series.
 - In "What to discuss with Dr. Lamkin", explicitly include pulling the statin / intensive LDL-lowering pharmacotherapy conversation forward — grounded in both venous LDL from January 2026 labs and this multi-year OBI screening trajectory with the March 2026 peak.
+"""
+    if topic_key == "prostate_surveillance_trt_high_prs":
+        prompt += """
+Additional required instruction for PSA wording (prostate surveillance topic):
+- When describing the patient's PSA, use the actual numeric value from the labs. Never describe a measured PSA value as "undetectable" — that term means below assay detection limit (typically <0.1 ng/mL). For PSA values within reference range but >0.1, use phrases like "within normal range at X ng/mL" or "low-normal at X ng/mL" depending on the value.
 """
     client = get_openai_client()
     rsp = client.chat.completions.create(
@@ -737,6 +743,7 @@ def generate_patient_report(clinical_report_id: int | None = None, output_dir: s
             patient_context=patient_context,
             allowed_studies=allowed,
             obi_ldl_addon=obi_ldl_combined if topic_key == "ldl_trajectory_trt_apoa2" else "",
+            topic_key=topic_key,
         )
         translated = _dehedge_text(translated)
         topic_initials[topic_key] = translated

@@ -7,6 +7,7 @@ from __future__ import annotations
 import json
 import logging
 import re
+import sys
 from typing import Any
 
 from app.ai.client import get_openai_client
@@ -57,6 +58,24 @@ def _fallback_grade(study: dict) -> dict[str, Any]:
     }
 
 
+def _extract_json(raw: str) -> dict | None:
+    if not raw or not raw.strip():
+        return None
+    cleaned = re.sub(r"^```(?:json)?\s*", "", raw.strip(), flags=re.IGNORECASE)
+    cleaned = re.sub(r"\s*```$", "", cleaned)
+    try:
+        return json.loads(cleaned)
+    except json.JSONDecodeError:
+        pass
+    match = re.search(r"\{.*\}", cleaned, re.DOTALL)
+    if match:
+        try:
+            return json.loads(match.group(0))
+        except json.JSONDecodeError:
+            return None
+    return None
+
+
 def _grade_one(client, study: dict, research_question: str, patient_context: str) -> dict[str, Any]:
     pt = ", ".join(study.get("publication_types") or [])
     authors = "; ".join((study.get("authors") or [])[:8])
@@ -105,7 +124,14 @@ CRITICAL: Do not invent any details not present in the abstract. If the abstract
         response_format={"type": "json_object"},
     )
     raw = response.choices[0].message.content or "{}"
-    data = json.loads(raw)
+    data = _extract_json(raw)
+    if data is None:
+        print(
+            f"[study_grader] Could not parse AI response for PMID {study.get('pmid')}. "
+            f"Raw response head: {(raw or '')[:200]!r}",
+            file=sys.stderr,
+        )
+        raise json.JSONDecodeError("AI returned non-JSON response", raw or "", 0)
     return _normalize_grade_payload(data)
 
 
