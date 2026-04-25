@@ -1,0 +1,390 @@
+genetic_recommendations:
+- rsid: rs5082
+  gene: APOA2
+  genotype_pattern: C/C
+  category: diet
+  recommendation_text: Cap saturated fat at roughly 7% of daily calories.
+  rationale: This genotype is associated with a stronger LDL/ApoB response to saturated
+    fat than average.
+  action_level: self_directed
+  priority: 1
+  source_notes: APOA2 saturated fat sensitivity anchor.
+- rsid: rs5082
+  gene: APOA2
+  genotype_pattern: C/C
+  category: diet
+  recommendation_text: Swap ribeye and prime cuts for filet, sirloin, or 93%+ lean
+    ground.
+  rationale: You keep protein intake high while materially reducing saturated fat
+    load.
+  action_level: self_directed
+  priority: 1
+  source_notes: Practical swap guidance.
+- rsid: rs5082
+  gene: APOA2
+  genotype_pattern: C/C
+  category: diet
+  recommendation_text: Swap full-fat cheddar for part-skim mozzarella or feta, or
+    cut portion in half.
+  rationale: Cheese is a dense saturated-fat source and can move LDL in saturated-fat-sensitive
+    phenotypes.
+  action_level: self_directed
+  priority: 1
+  source_notes: Cheese-specific intervention.
+- rsid: rs5082
+  gene: APOA2
+  genotype_pattern: C/C
+  category: diet
+  recommendation_text: Replace sour cream base in dips with full-fat Greek yogurt.
+  rationale: This preserves texture while improving fat profile and increasing protein
+    density.
+  action_level: self_directed
+  priority: 2
+  source_notes: Dip swap.
+- rsid: rs5082
+  gene: APOA2
+  genotype_pattern: C/C
+  category: diet
+  recommendation_text: Swap pork rinds for almonds, macadamias, or walnuts in the
+    same snack role.
+  rationale: You keep portability and crunch while shifting toward monounsaturated
+    and polyunsaturated fats.
+  action_level: self_directed
+  priority: 1
+  source_notes: Snack swap.
+- rsid: rs5082
+  gene: APOA2
+  genotype_pattern: C/C
+  category: diet
+  recommendation_text: Use olive oil, avocado, and fatty fish as your default fat
+    sources over butter, lard, and tropical oils.
+  rationale: A Mediterranean fat pattern aligns with lower ApoB burden in saturated-fat-sensitive
+    profiles.
+  action_level: self_directed
+  priority: 2
+  source_notes: Mediterranean emphasis.
+- rsid: rs1801131
+  gene: MTHFR
+  genotype_pattern: C/C
+  category: monitoring
+  recommendation_text: Recheck homocysteine 8–12 weeks after TMG dose stabilization.
+  rationale: Objective follow-up confirms whether the methylation strategy is moving
+    the target biomarker.
+  action_level: discuss_with_doctor
+  priority: 1
+  source_notes: Homocysteine tracking cadence.
+- rsid: rs1801131
+  gene: MTHFR
+  genotype_pattern: C/C
+  category: supplement
+  recommendation_text: Ensure your multivitamin uses 5-MTHF rather than folic acid.
+  rationale: Active folate forms are more aligned with methylation support in reduced-conversion
+    phenotypes.
+  action_level: self_directed
+  priority: 2
+  source_notes: Form-specific folate recommendation.
+- rsid: rs1801131
+  gene: MTHFR
+  genotype_pattern: C/C
+  category: supplement
+  recommendation_text: Ask Dr. Lamkin about adding sublingual methylcobalamin 1 mg/day
+    if homocysteine remains above 10.
+  rationale: B12 sufficiency can be rate-limiting for methylation throughput even
+    with folate/TMG in place.
+  action_level: discuss_with_doctor
+  priority: 1
+  source_notes: Escalation pathway if homocysteine not controlled.
+- rsid: rs1799945
+  gene: HFE
+  genotype_pattern: C/G
+  category: diet
+  recommendation_text: Avoid iron-fortified foods and iron supplements unless deficiency
+    is confirmed by labs.
+  rationale: H63D carrier status can bias toward higher iron storage in some contexts,
+    especially with TRT.
+  action_level: self_directed
+  priority: 1
+  source_notes: Iron caution.
+- rsid: rs1799945
+  gene: HFE
+  genotype_pattern: C/G
+  category: diet
+  recommendation_text: Moderate red-meat frequency rather than eliminating it entirely.
+  rationale: This balances iron exposure and saturated-fat load while preserving adherence.
+  action_level: self_directed
+  priority: 2
+  source_notes: Joint HFE/APOA2 practicality.
+- rsid: rs1799945
+  gene: HFE
+  genotype_pattern: C/G
+  category: monitoring
+  recommendation_text: Ask Dr. Lamkin to define ferritin and transferrin-saturation
+    monitoring cadence while on TRT.
+  rationale: TRT can increase erythropoiesis and alter iron handling over time.
+  action_level: discuss_with_doctor
+  priority: 1
+  source_notes: Monitoring cadence recommendation.
+- rsid: rs1799945
+  gene: HFE
+  genotype_pattern: C/G
+  category: monitoring
+  recommendation_text: If ferritin rises above roughly 150 ng/mL, discuss blood donation
+    strategy.
+  rationale: Periodic phlebotomy is a low-cost intervention when iron burden drifts
+    upward.
+  action_level: discuss_with_doctor
+  priority: 1
+  source_notes: Action threshold note.
+- rsid: rs326
+  gene: LPL
+  genotype_pattern: A/A
+  category: exercise
+  recommendation_text: Keep resistance training and BJJ as fixed weekly anchors.
+  rationale: These are among the strongest lifestyle levers for HDL support and insulin
+    sensitivity.
+  action_level: self_directed
+  priority: 2
+  source_notes: Maintain current strengths.
+- rsid: rs326
+  gene: LPL
+  genotype_pattern: A/A
+  category: exercise
+  recommendation_text: Add 1–2 interval sessions per week when recovery allows.
+  rationale: Intervals can improve lipoprotein profile and cardiorespiratory fitness
+    beyond steady-state volume alone.
+  action_level: self_directed
+  priority: 2
+  source_notes: HIIT addition.
+- rsid: rs326
+  gene: LPL
+  genotype_pattern: A/A
+  category: diet
+  recommendation_text: Keep refined carbs and sugar-sweetened drinks near zero.
+  rationale: Low-HDL phenotypes are often more sensitive to refined-carbohydrate load.
+  action_level: self_directed
+  priority: 2
+  source_notes: Carb quality emphasis.
+- rsid: rs2802292
+  gene: FOXO3
+  genotype_pattern: G/G
+  category: exercise
+  recommendation_text: Plan resistance training continuity into older decades, not
+    just current cycles.
+  rationale: Muscle preservation is one of the most durable healthspan levers under
+    personal control.
+  action_level: self_directed
+  priority: 1
+  source_notes: Longevity behavior anchor.
+- rsid: rs2802292
+  gene: FOXO3
+  genotype_pattern: G/G
+  category: diet
+  recommendation_text: Stay with Mediterranean-pattern food choices as your default
+    baseline.
+  rationale: This pattern has broad epidemiologic support and fits your variant profile
+    and lipid goals.
+  action_level: self_directed
+  priority: 2
+  source_notes: Diet pattern continuity.
+- rsid: rs2802288
+  gene: FOXO3
+  genotype_pattern: A/A
+  category: behavior
+  recommendation_text: Avoid large oscillations in energy intake; prioritize consistency
+    over extremes.
+  rationale: Stability improves adherence and tends to produce better long-horizon
+    outcomes than short cycles.
+  action_level: self_directed
+  priority: 3
+  source_notes: Consistency note.
+- rsid: rs9536314
+  gene: KLOTHO
+  genotype_pattern: G/T
+  category: sleep
+  recommendation_text: Push nightly sleep from roughly 6.5 hours toward at least 7
+    hours.
+  rationale: Sleep duration is a high-leverage input for cognition, metabolic control,
+    and training recovery.
+  action_level: self_directed
+  priority: 1
+  source_notes: Sleep as healthspan lever.
+- rsid: rs6323
+  gene: MAOA
+  genotype_pattern: T/T
+  category: sleep
+  recommendation_text: Treat sleep regularity as non-negotiable to protect mood and
+    executive function.
+  rationale: Lower monoamine clearance can amplify the cognitive and mood cost of
+    sleep debt.
+  action_level: self_directed
+  priority: 2
+  source_notes: MAOA + sleep interaction.
+- rsid: rs6323
+  gene: MAOA
+  genotype_pattern: T/T
+  category: supplement
+  recommendation_text: Keep 5-HTP and high-dose tryptophan off your stack.
+  rationale: Exogenous serotonin precursors can be poorly tolerated when monoamine
+    clearance is slower.
+  action_level: self_directed
+  priority: 1
+  source_notes: Already acted on; keep persistent.
+- rsid: rs6323
+  gene: MAOA
+  genotype_pattern: T/T
+  category: behavior
+  recommendation_text: 'Watch for overtraining signs: persistent fatigue, mood flattening,
+    and sustained HRV decline.'
+  rationale: Hard training plus work stress can accumulate faster than subjective
+    readiness suggests.
+  action_level: self_directed
+  priority: 2
+  source_notes: Recovery monitoring.
+- rsid: rs2011077
+  gene: FGFR4
+  genotype_pattern: any
+  category: monitoring
+  recommendation_text: Get PSA at least annually while on TRT.
+  rationale: TRT and elevated inherited risk profile justify structured surveillance
+    cadence.
+  action_level: discuss_with_doctor
+  priority: 1
+  source_notes: Core surveillance action.
+- rsid: rs2011077
+  gene: FGFR4
+  genotype_pattern: any
+  category: monitoring
+  recommendation_text: Ask Dr. Lamkin about baseline multiparametric prostate MRI.
+  rationale: MRI may improve early detection strategy in men with elevated polygenic
+    risk.
+  action_level: discuss_with_doctor
+  priority: 1
+  source_notes: MRI baseline discussion.
+- rsid: rs2011077
+  gene: FGFR4
+  genotype_pattern: any
+  category: monitoring
+  recommendation_text: 'Report urinary changes early: frequency, urgency, stream reduction,
+    or nocturia shifts.'
+  rationale: Symptom trend can provide useful early context between scheduled surveillance
+    points.
+  action_level: self_directed
+  priority: 1
+  source_notes: Symptom vigilance.
+- rsid: rs2011077
+  gene: FGFR4
+  genotype_pattern: any
+  category: diet
+  recommendation_text: Add lycopene-rich foods (tomatoes, watermelon) as routine side
+    choices.
+  rationale: Evidence is modest but directionally consistent and the intervention
+    is low-risk.
+  action_level: self_directed
+  priority: 3
+  source_notes: Low-risk dietary adjunct.
+- rsid: rs180223
+  gene: TG
+  genotype_pattern: G/T
+  category: monitoring
+  recommendation_text: Ask for periodic TPO and anti-Tg antibody checks alongside
+    TSH.
+  rationale: Autoimmune risk can emerge before overt thyroid dysfunction is obvious
+    on TSH alone.
+  action_level: discuss_with_doctor
+  priority: 2
+  source_notes: Thyroid antibody surveillance.
+- rsid: rs9268839
+  gene: HLA region
+  genotype_pattern: G/G
+  category: diet
+  recommendation_text: Keep Mediterranean-pattern eating as your anti-inflammatory
+    default.
+  rationale: This pattern is broadly compatible with inflammatory-risk mitigation
+    and lipid goals.
+  action_level: self_directed
+  priority: 2
+  source_notes: Inflammation-risk compatible diet.
+- rsid: rs660895
+  gene: HLA region
+  genotype_pattern: G/G
+  category: behavior
+  recommendation_text: 'Treat oral hygiene as risk management: floss daily and keep
+    regular cleanings.'
+  rationale: Periodontal inflammation is a known environmental amplifier of RA risk
+    pathways.
+  action_level: self_directed
+  priority: 1
+  source_notes: RA trigger mitigation.
+- rsid: rs660895
+  gene: HLA region
+  genotype_pattern: G/G
+  category: behavior
+  recommendation_text: Do not smoke, and avoid regular secondhand smoke exposure where
+    possible.
+  rationale: Smoking is one of the strongest modifiable risk multipliers for RA expression.
+  action_level: self_directed
+  priority: 1
+  source_notes: Strong environmental risk factor.
+- rsid: rs2060793
+  gene: CYP2R1
+  genotype_pattern: A/A
+  category: monitoring
+  recommendation_text: Continue periodic 25-OH vitamin D checks and avoid pushing
+    levels above high-normal.
+  rationale: Your metabolism trend supports monitoring to keep dosing in a safe target
+    band.
+  action_level: discuss_with_doctor
+  priority: 2
+  source_notes: Dose-to-level monitoring.
+- rsid: rs2060793
+  gene: CYP2R1
+  genotype_pattern: A/A
+  category: supplement
+  recommendation_text: Keep vitamin K paired with vitamin D in your daily regimen.
+  rationale: K cofactor support is a pragmatic safety complement when vitamin D intake
+    is high.
+  action_level: self_directed
+  priority: 3
+  source_notes: D/K pairing reminder.
+- rsid: rs2802292
+  gene: FOXO3
+  genotype_pattern: any
+  category: sleep
+  recommendation_text: Get to at least 7 hours of sleep nightly as a first-order priority.
+  rationale: Sleep is currently the largest modifiable lever left relative to your
+    training and diet discipline.
+  action_level: self_directed
+  priority: 1
+  source_notes: Global health anchor.
+- rsid: rs326
+  gene: LPL
+  genotype_pattern: any
+  category: behavior
+  recommendation_text: Break up sedentary work blocks every 30–60 minutes with 2–3
+    minutes of movement.
+  rationale: Frequent movement breaks improve glucose handling independent of formal
+    workouts.
+  action_level: self_directed
+  priority: 2
+  source_notes: WFH sedentary countermeasure.
+- rsid: rs2802292
+  gene: FOXO3
+  genotype_pattern: any
+  category: monitoring
+  recommendation_text: Track VO2max annually if possible and treat trend as a healthspan
+    vital sign.
+  rationale: Cardiorespiratory fitness is strongly linked to all-cause mortality in
+    cohort data.
+  action_level: discuss_with_doctor
+  priority: 3
+  source_notes: Longitudinal cardiorespiratory marker.
+- rsid: rs2802292
+  gene: FOXO3
+  genotype_pattern: any
+  category: exercise
+  recommendation_text: Deliberately train grip and leg strength, not just conditioning
+    volume.
+  rationale: Strength maintenance past age 50 adds resilience beyond endurance adaptations.
+  action_level: self_directed
+  priority: 2
+  source_notes: Strength longevity anchor.

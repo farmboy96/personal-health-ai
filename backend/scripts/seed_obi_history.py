@@ -15,71 +15,37 @@ import sys
 from datetime import date, datetime, time
 from pathlib import Path
 
+import yaml
+from sqlalchemy import text
+from sqlalchemy.dialects.sqlite import insert
+
 _BACKEND = Path(__file__).resolve().parents[1]
 if str(_BACKEND) not in sys.path:
     sys.path.insert(0, str(_BACKEND))
 
-from sqlalchemy.dialects.sqlite import insert
-
 from app.db.database import SessionLocal, engine
 from app.db.models import RawMeasurement, SourceFile
-from sqlalchemy import text
 
 OBI_SOURCE_NAME = "obi_app"
 SOURCE_FILENAME = "obi_app_screening_history_seed"
-# Stable pseudo-file identity for idempotent SourceFile row
-SEED_CONTENT_HASH = hashlib.sha256(b"obi_history_seed_v1_robert").hexdigest()
+_SEED_PATH = _BACKEND / "data" / "seed" / "obi_history.yaml"
 
-BP_READINGS: list[tuple[date, int, int]] = [
-    (date(2026, 3, 28), 118, 75),
-    (date(2025, 7, 2), 122, 73),
-    (date(2024, 11, 30), 123, 79),
-    (date(2024, 7, 5), 116, 77),
-    (date(2024, 5, 10), 99, 67),
-    (date(2024, 2, 23), 118, 72),
-    (date(2023, 12, 16), 126, 77),
-    (date(2023, 10, 21), 117, 78),
-    (date(2023, 8, 19), 130, 74),
-    (date(2023, 6, 24), 117, 78),
-    (date(2023, 4, 22), 135, 70),
-    (date(2022, 12, 31), 122, 77),
-    (date(2022, 9, 17), 122, 70),
-]
 
-CHOLESTEROL_READINGS: list[tuple[date, int]] = [
-    (date(2026, 3, 28), 311),
-    (date(2025, 7, 2), 232),
-    (date(2024, 11, 30), 220),
-    (date(2024, 5, 10), 198),
-    (date(2024, 2, 23), 248),
-    (date(2023, 12, 16), 215),
-    (date(2023, 10, 21), 238),
-    (date(2023, 8, 19), 262),
-    (date(2023, 6, 24), 246),
-    (date(2023, 4, 22), 209),
-    (date(2022, 12, 31), 231),
-    (date(2022, 9, 17), 251),
-]
+def _load_seed() -> dict:
+    payload = yaml.safe_load(_SEED_PATH.read_text(encoding="utf-8")) or {}
+    return dict(payload)
 
-HEMOGLOBIN_READINGS: list[tuple[date, float]] = [
-    (date(2026, 3, 28), 19.0),
-    (date(2025, 7, 2), 18.3),
-    (date(2024, 11, 30), 17.6),
-]
 
-PULSE_READINGS: list[tuple[date, int]] = [
-    (date(2026, 3, 28), 73),
-    (date(2025, 7, 2), 80),
-    (date(2024, 11, 30), 75),
-]
+def _parse_date(raw: str) -> date:
+    return date.fromisoformat(raw)
 
 
 def _dt(d: date) -> datetime:
     return datetime.combine(d, time(12, 0, 0))
 
 
-def _dedupe(metric_type: str, start: datetime, val_str: str) -> str:
-    raw = f"{metric_type}|{start.isoformat()}|{val_str}|{OBI_SOURCE_NAME}"
+def _dedupe(metric_type: str, start: datetime, val_str: str, source_name: str) -> str:
+    raw = f"{metric_type}|{start.isoformat()}|{val_str}|{source_name}"
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
 
@@ -98,18 +64,24 @@ def _payload(kind: str) -> str:
 def main() -> None:
     db = SessionLocal()
     try:
+        seed = _load_seed()
+        obi_source_name = seed.get("obi_source_name", OBI_SOURCE_NAME)
+        source_filename = seed.get("source_filename", SOURCE_FILENAME)
+        hash_seed = seed.get("seed_content_hash_seed", "obi_history_seed_v1_robert")
+        seed_content_hash = hashlib.sha256(str(hash_seed).encode("utf-8")).hexdigest()
+
         with engine.connect() as conn:
             conn.execute(text("PRAGMA journal_mode=WAL;"))
             conn.commit()
 
-        sf = db.query(SourceFile).filter(SourceFile.file_hash == SEED_CONTENT_HASH).first()
+        sf = db.query(SourceFile).filter(SourceFile.file_hash == seed_content_hash).first()
         if not sf:
             sf = SourceFile(
-                filename=SOURCE_FILENAME,
-                file_hash=SEED_CONTENT_HASH,
+                filename=source_filename,
+                file_hash=seed_content_hash,
                 file_type="obi_seed",
                 stored_path=None,
-                source_category=OBI_SOURCE_NAME,
+                source_category=obi_source_name,
             )
             db.add(sf)
             db.commit()
@@ -117,8 +89,10 @@ def main() -> None:
 
         rows_buffer: list[dict] = []
 
-        # BP
-        for d, sys_v, dia_v in BP_READINGS:
+        for row in seed.get("bp_readings", []):
+            d = _parse_date(row["date"])
+            sys_v = int(row["systolic"])
+            dia_v = int(row["diastolic"])
             st = _dt(d)
             for metric_type, val, unit, tag in (
                 ("BP_SYSTOLIC", float(sys_v), "mmHg", "bp_systolic"),
@@ -129,7 +103,7 @@ def main() -> None:
                         "source_file_id": sf.id,
                         "import_run_id": None,
                         "metric_type": metric_type,
-                        "source_name": OBI_SOURCE_NAME,
+                        "source_name": obi_source_name,
                         "source_version": None,
                         "device": None,
                         "start_date": st,
@@ -137,21 +111,22 @@ def main() -> None:
                         "value": val,
                         "value_text": None,
                         "unit": unit,
-                        "dedupe_hash": _dedupe(metric_type, st, str(val)),
+                        "dedupe_hash": _dedupe(metric_type, st, str(val), obi_source_name),
                         "raw_payload": _payload(tag),
                     }
                 )
 
-        for d, tc in CHOLESTEROL_READINGS:
+        for row in seed.get("cholesterol_readings", []):
+            d = _parse_date(row["date"])
+            val = float(row["value"])
             st = _dt(d)
             metric_type = "OBI_TOTAL_CHOLESTEROL"
-            val = float(tc)
             rows_buffer.append(
                 {
                     "source_file_id": sf.id,
                     "import_run_id": None,
                     "metric_type": metric_type,
-                    "source_name": OBI_SOURCE_NAME,
+                    "source_name": obi_source_name,
                     "source_version": None,
                     "device": None,
                     "start_date": st,
@@ -159,21 +134,22 @@ def main() -> None:
                     "value": val,
                     "value_text": None,
                     "unit": "mg/dL",
-                    "dedupe_hash": _dedupe(metric_type, st, str(val)),
+                    "dedupe_hash": _dedupe(metric_type, st, str(val), obi_source_name),
                     "raw_payload": _payload("total_cholesterol_screening"),
                 }
             )
 
-        for d, hb in HEMOGLOBIN_READINGS:
+        for row in seed.get("hemoglobin_readings", []):
+            d = _parse_date(row["date"])
+            val = float(row["value"])
             st = _dt(d)
             metric_type = "OBI_HEMOGLOBIN"
-            val = float(hb)
             rows_buffer.append(
                 {
                     "source_file_id": sf.id,
                     "import_run_id": None,
                     "metric_type": metric_type,
-                    "source_name": OBI_SOURCE_NAME,
+                    "source_name": obi_source_name,
                     "source_version": None,
                     "device": None,
                     "start_date": st,
@@ -181,21 +157,22 @@ def main() -> None:
                     "value": val,
                     "value_text": None,
                     "unit": "g/dL",
-                    "dedupe_hash": _dedupe(metric_type, st, str(val)),
+                    "dedupe_hash": _dedupe(metric_type, st, str(val), obi_source_name),
                     "raw_payload": _payload("hemoglobin_screening"),
                 }
             )
 
-        for d, pulse in PULSE_READINGS:
+        for row in seed.get("pulse_readings", []):
+            d = _parse_date(row["date"])
+            val = float(row["value"])
             st = _dt(d)
             metric_type = "OBI_PULSE"
-            val = float(pulse)
             rows_buffer.append(
                 {
                     "source_file_id": sf.id,
                     "import_run_id": None,
                     "metric_type": metric_type,
-                    "source_name": OBI_SOURCE_NAME,
+                    "source_name": obi_source_name,
                     "source_version": None,
                     "device": None,
                     "start_date": st,
@@ -203,19 +180,18 @@ def main() -> None:
                     "value": val,
                     "value_text": None,
                     "unit": "bpm",
-                    "dedupe_hash": _dedupe(metric_type, st, str(val)),
+                    "dedupe_hash": _dedupe(metric_type, st, str(val), obi_source_name),
                     "raw_payload": json.dumps(
                         {
                             "measurement_method": "finger_stick_obi",
                             "kind": "seated_pulse_at_donation",
-                            "note": "Not true resting heart rate — seated pulse at donation visit.",
+                            "note": "Not true resting heart rate - seated pulse at donation visit.",
                         },
                         sort_keys=True,
                     ),
                 }
             )
 
-        # Insert with accurate counts (rowcount per batch unreliable for sqlite sometimes)
         inserted_total = 0
         chunk_size = 80
         for i in range(0, len(rows_buffer), chunk_size):
@@ -228,19 +204,17 @@ def main() -> None:
 
         print(f"[done] Insert attempts: {len(rows_buffer)}, rows reported inserted (new): {inserted_total}")
 
-        # Per-metric counts in DB for OBI source
         from sqlalchemy import func
 
         q = (
             db.query(RawMeasurement.metric_type, func.count(RawMeasurement.id))
-            .filter(RawMeasurement.source_name == OBI_SOURCE_NAME)
+            .filter(RawMeasurement.source_name == obi_source_name)
             .group_by(RawMeasurement.metric_type)
             .all()
         )
-        print("[counts by metric_type for source_name=obi_app]")
+        print(f"[counts by metric_type for source_name={obi_source_name}]")
         for mt, c in sorted(q):
             print(f"  {mt}: {c}")
-
     finally:
         db.close()
 

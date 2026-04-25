@@ -1,0 +1,82 @@
+obi_source_name: obi_app
+source_filename: obi_app_screening_history_seed
+seed_content_hash_seed: obi_history_seed_v1_robert
+bp_readings:
+- date: '2026-03-28'
+  systolic: 118
+  diastolic: 75
+- date: '2025-07-02'
+  systolic: 122
+  diastolic: 73
+- date: '2024-11-30'
+  systolic: 123
+  diastolic: 79
+- date: '2024-07-05'
+  systolic: 116
+  diastolic: 77
+- date: '2024-05-10'
+  systolic: 99
+  diastolic: 67
+- date: '2024-02-23'
+  systolic: 118
+  diastolic: 72
+- date: '2023-12-16'
+  systolic: 126
+  diastolic: 77
+- date: '2023-10-21'
+  systolic: 117
+  diastolic: 78
+- date: '2023-08-19'
+  systolic: 130
+  diastolic: 74
+- date: '2023-06-24'
+  systolic: 117
+  diastolic: 78
+- date: '2023-04-22'
+  systolic: 135
+  diastolic: 70
+- date: '2022-12-31'
+  systolic: 122
+  diastolic: 77
+- date: '2022-09-17'
+  systolic: 122
+  diastolic: 70
+cholesterol_readings:
+- date: '2026-03-28'
+  value: 311
+- date: '2025-07-02'
+  value: 232
+- date: '2024-11-30'
+  value: 220
+- date: '2024-05-10'
+  value: 198
+- date: '2024-02-23'
+  value: 248
+- date: '2023-12-16'
+  value: 215
+- date: '2023-10-21'
+  value: 238
+- date: '2023-08-19'
+  value: 262
+- date: '2023-06-24'
+  value: 246
+- date: '2023-04-22'
+  value: 209
+- date: '2022-12-31'
+  value: 231
+- date: '2022-09-17'
+  value: 251
+hemoglobin_readings:
+- date: '2026-03-28'
+  value: 19.0
+- date: '2025-07-02'
+  value: 18.3
+- date: '2024-11-30'
+  value: 17.6
+pulse_readings:
+- date: '2026-03-28'
+  value: 73
+- date: '2025-07-02'
+  value: 80
+- date: '2024-11-30'
+  value: 75
